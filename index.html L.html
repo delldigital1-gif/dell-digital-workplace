@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dell Digital — Consulting Numérique · Lomé, Togo</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root{
+  --or:#E8600A;--or2:#FF8030;--or3:#FF9B55;
+  --bg:#080808;--bg2:#0F0F0F;--surf:#141414;--surf2:#1A1A1A;
+  --text:#F0EDE8;--muted:#7A7570;--silver:#C8C4BE;--silver2:#E8E4DE;
+  --border:rgba(232,96,10,0.18);--borderl:rgba(255,255,255,0.07);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 5vw;height:64px;
+  background:rgba(8,8,8,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  transition:background 0.3s;
+}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-badge{
+  width:38px;height:38px;border-radius:9px;
+  background:linear-gradient(135deg,#C8520A,#FF8030);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-weight:900;font-size:14px;color:#fff;
+  box-shadow:0 0 18px rgba(232,96,10,0.4);
+}
+.nav-brand{font-family:'Orbitron',monospace;font-weight:800;font-size:14px;letter-spacing:2px}
+.nav-brand span{color:var(--or)}
+.nav-sub{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.btn-ghost{background:transparent;color:var(--silver);border:1px solid rgba(255,255,255,0.12);padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.btn-ghost:hover{border-color:rgba(232,96,10,0.5);color:var(--or)}
+.btn-cta{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;box-shadow:0 3px 14px rgba(232,96,10,0.35)}
+.btn-cta:hover{transform:translateY(-1px);box-shadow:0 5px 22px rgba(232,96,10,0.5)}
+.burger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.burger span{width:22px;height:2px;background:var(--silver);border-radius:2px;transition:all 0.3s;display:block}
+.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;background:rgba(10,10,10,0.98);backdrop-filter:blur(20px);padding:24px 5vw;border-bottom:1px solid var(--borderl);flex-direction:column;gap:16px;z-index:99}
+.mobile-menu.open{display:flex}
+.mobile-menu a{font-size:15px;color:var(--silver);padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:80px 5vw 60px;
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 100% 70% at 50% -10%, rgba(232,96,10,0.12) 0%, transparent 60%);
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 70px,rgba(255,255,255,0.014) 70px,rgba(255,255,255,0.014) 71px),
+             repeating-linear-gradient(90deg,transparent,transparent 70px,rgba(255,255,255,0.014) 70px,rgba(255,255,255,0.014) 71px);
+  pointer-events:none;
+}
+/* Orbe déco */
+.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+.orb-1{width:500px;height:500px;background:radial-gradient(circle,rgba(232,96,10,0.12),transparent 70%);top:-120px;right:-80px}
+.orb-2{width:320px;height:320px;background:radial-gradient(circle,rgba(232,96,10,0.07),transparent 70%);bottom:-60px;left:-60px}
+
+.hero-inner{max-width:800px;text-align:center;position:relative;z-index:1}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(232,96,10,0.1);border:1px solid rgba(232,96,10,0.3);
+  border-radius:30px;padding:6px 16px;font-size:11px;font-weight:700;
+  color:var(--or3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;
+}
+.hero-pill-dot{width:7px;height:7px;border-radius:50%;background:var(--or3);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+.hero h1{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:clamp(32px,6vw,64px);line-height:1.08;letter-spacing:-1px;
+  margin-bottom:22px;
+}
+.hero h1 .line-or{color:var(--or);display:block}
+.hero h1 .line-silver{
+  color:transparent;
+  -webkit-text-stroke:1px rgba(232,96,10,0.4);
+  display:block;
+}
+.hero-desc{font-size:clamp(14px,1.6vw,18px);color:var(--muted);line-height:1.75;max-width:560px;margin:0 auto 38px;font-weight:300}
+.hero-desc strong{color:var(--silver);font-weight:500}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:52px}
+.btn-hero-main{
+  background:linear-gradient(135deg,var(--or),var(--or2));
+  color:#fff;border:none;padding:15px 34px;border-radius:10px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;
+  box-shadow:0 5px 28px rgba(232,96,10,0.42);transition:all 0.25s;letter-spacing:0.3px;
+}
+.btn-hero-main:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(232,96,10,0.58)}
+.btn-hero-sec{
+  background:rgba(255,255,255,0.05);color:var(--silver2);
+  border:1px solid rgba(255,255,255,0.12);padding:15px 30px;border-radius:10px;
+  font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.25s;
+}
+.btn-hero-sec:hover{background:rgba(255,255,255,0.09);border-color:rgba(232,96,10,0.35);color:var(--or3)}
+.hero-stats{
+  display:flex;align-items:center;justify-content:center;gap:0;
+  background:rgba(255,255,255,0.03);border:1px solid var(--borderl);
+  border-radius:14px;overflow:hidden;max-width:540px;margin:0 auto;
+}
+.hstat{flex:1;padding:18px 16px;text-align:center;border-right:1px solid var(--borderl)}
+.hstat:last-child{border-right:none}
+.hstat-val{font-family:'Orbitron',monospace;font-size:22px;font-weight:800;color:var(--or);margin-bottom:3px}
+.hstat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+
+/* ── SECTION BASE ── */
+section{padding:90px 5vw}
+.section-label{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--or);margin-bottom:12px}
+.section-title{font-family:'Orbitron',monospace;font-size:clamp(22px,3.5vw,36px);font-weight:800;line-height:1.2;margin-bottom:14px}
+.section-title span{color:var(--or)}
+.section-sub{font-size:15px;color:var(--muted);max-width:520px;line-height:1.75}
+.section-head{margin-bottom:52px}
+
+/* ── SERVICES ── */
+#services{background:var(--bg2)}
+.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.scard{
+  background:var(--surf);border:1px solid var(--borderl);border-radius:16px;
+  padding:28px 26px;position:relative;overflow:hidden;
+  transition:all 0.28s;cursor:default;
+}
+.scard::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--or),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.scard:hover{border-color:rgba(232,96,10,0.35);transform:translateY(-4px);box-shadow:0 14px 40px rgba(232,96,10,0.1)}
+.scard:hover::before{opacity:1}
+.scard-ic{font-size:32px;margin-bottom:18px;display:block}
+.scard-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:1px;margin-bottom:10px;color:var(--silver2)}
+.scard-desc{font-size:13px;color:var(--muted);line-height:1.75}
+.scard-tag{
+  display:inline-block;margin-top:16px;
+  background:rgba(232,96,10,0.1);border:1px solid rgba(232,96,10,0.22);
+  color:var(--or3);font-size:10px;font-weight:700;letter-spacing:1px;
+  padding:3px 10px;border-radius:20px;text-transform:uppercase;
+}
+
+/* ── POURQUOI NOUS ── */
+#pourquoi{background:var(--bg)}
+.pq-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.pq-visual{
+  background:var(--surf2);border:1px solid var(--borderl);border-radius:20px;
+  padding:36px;position:relative;overflow:hidden;
+}
+.pq-visual::after{
+  content:'';position:absolute;bottom:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,96,10,0.18),transparent 70%);
+}
+.pq-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(232,96,10,0.12);border:1px solid rgba(232,96,10,0.28);
+  border-radius:8px;padding:8px 14px;font-size:11px;font-weight:700;
+  color:var(--or3);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;
+}
+.pq-big{font-family:'Orbitron',monospace;font-size:48px;font-weight:900;color:var(--or);line-height:1;margin-bottom:6px}
+.pq-label{font-size:13px;color:var(--muted);margin-bottom:28px}
+.pq-bar{margin-bottom:14px}
+.pq-bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.pq-bar-name{color:var(--silver);font-weight:500}
+.pq-bar-pct{color:var(--or);font-weight:700}
+.pq-track{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.pq-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--or),var(--or2));animation:growbar 1.5s ease forwards}
+@keyframes growbar{from{width:0}}
+.pq-list{display:flex;flex-direction:column;gap:20px}
+.pq-item{display:flex;align-items:flex-start;gap:16px}
+.pq-ic{width:44px;height:44px;border-radius:10px;background:rgba(232,96,10,0.1);border:1px solid rgba(232,96,10,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pq-item h4{font-size:14px;font-weight:600;color:var(--silver2);margin-bottom:4px}
+.pq-item p{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ── TÉMOIGNAGES ── */
+#temoignages{background:var(--bg2)}
+.tcard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tcard{background:var(--surf);border:1px solid var(--borderl);border-radius:16px;padding:26px 24px}
+.tcard-quote{font-size:28px;color:var(--or);opacity:0.6;margin-bottom:12px;line-height:1;font-family:Georgia,serif}
+.tcard-text{font-size:13px;color:var(--silver);line-height:1.75;font-style:italic;margin-bottom:18px}
+.tcard-author{display:flex;align-items:center;gap:10px}
+.tcard-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--or2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.tcard-name{font-size:13px;font-weight:600;color:var(--silver2)}
+.tcard-role{font-size:10px;color:var(--muted)}
+.tcard-stars{color:var(--or);font-size:11px;margin-top:2px;letter-spacing:1px}
+
+/* ── CTA FINAL ── */
+#rejoindre{
+  background:linear-gradient(135deg,#0F0F0F 0%,#1A0A00 100%);
+  text-align:center;padding:110px 5vw;position:relative;overflow:hidden;
+}
+#rejoindre::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,96,10,0.1),transparent 65%);
+  pointer-events:none;
+}
+.cta-inner{position:relative;z-index:1;max-width:620px;margin:0 auto}
+.cta-tag{display:inline-block;background:rgba(232,96,10,0.15);border:1px solid rgba(232,96,10,0.35);color:var(--or3);font-size:10px;font-weight:700;letter-spacing:2px;padding:6px 16px;border-radius:30px;text-transform:uppercase;margin-bottom:24px}
+.cta-title{font-family:'Orbitron',monospace;font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.15;margin-bottom:16px}
+.cta-title span{color:var(--or)}
+.cta-sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:38px}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.btn-cta-big{
+  background:linear-gradient(135deg,var(--or),var(--or2));
+  color:#fff;border:none;padding:16px 38px;border-radius:11px;
+  font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;
+  box-shadow:0 6px 28px rgba(232,96,10,0.45);transition:all 0.25s;letter-spacing:0.3px;
+}
+.btn-cta-big:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(232,96,10,0.6)}
+.btn-cta-sec{
+  background:transparent;color:var(--silver);
+  border:1px solid rgba(255,255,255,0.14);padding:16px 30px;border-radius:11px;
+  font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.25s;
+}
+.btn-cta-sec:hover{border-color:rgba(232,96,10,0.4);color:var(--or3)}
+.cta-note{margin-top:20px;font-size:12px;color:var(--muted)}
+.cta-note span{color:var(--or);font-weight:600}
+
+/* ── FOOTER ── */
+footer{
+  background:#060606;border-top:1px solid rgba(255,255,255,0.06);
+  padding:48px 5vw 28px;
+}
+.footer-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-brand h3{font-family:'Orbitron',monospace;font-size:15px;font-weight:800;letter-spacing:2px;margin-bottom:6px}
+.footer-brand h3 span{color:var(--or)}
+.footer-brand p{font-size:12px;color:var(--muted);line-height:1.75;max-width:240px;margin-top:10px}
+.footer-tagline{font-size:11px;color:rgba(232,96,10,0.7);font-style:italic;margin-top:8px}
+.footer-col h4{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.footer-col a{display:block;font-size:12px;color:#5A5550;margin-bottom:9px;transition:color 0.2s}
+.footer-col a:hover{color:var(--or)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.05);padding-top:22px;flex-wrap:wrap;gap:10px}
+.footer-copy{font-size:11px;color:#3A3530}
+.footer-socials{display:flex;gap:10px}
+.fsoc{width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.2s;cursor:pointer}
+.fsoc:hover{background:rgba(232,96,10,0.12);border-color:rgba(232,96,10,0.3)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){
+  .services-grid{grid-template-columns:repeat(2,1fr)}
+  .tcard-grid{grid-template-columns:repeat(2,1fr)}
+  .footer-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .burger{display:flex}
+  .hero{padding:90px 20px 50px}
+  .hero h1{font-size:32px}
+  .hero-stats{flex-direction:column}
+  .hstat{border-right:none;border-bottom:1px solid var(--borderl)}
+  .hstat:last-child{border-bottom:none}
+  section{padding:60px 20px}
+  .services-grid{grid-template-columns:1fr}
+  .pq-grid{grid-template-columns:1fr}
+  .tcard-grid{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr}
+  .footer-brand p{max-width:100%}
+}
+@media(max-width:480px){
+  .hero h1{font-size:26px}
+  .hero-btns{flex-direction:column;width:100%}
+  .btn-hero-main,.btn-hero-sec{width:100%;justify-content:center}
+  .cta-btns{flex-direction:column;width:100%}
+  .btn-cta-big,.btn-cta-sec{width:100%}
+}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease,transform 0.65s ease}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <div class="nav-badge">DD</div>
+    <div>
+      <div class="nav-brand">DELL <span>DIGITAL</span></div>
+      <div class="nav-sub">Consulting Numérique</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#services">Services</a>
+    <a href="#pourquoi">Pourquoi nous</a>
+    <a href="#temoignages">Témoignages</a>
+    <a href="#rejoindre">Contact</a>
+  </div>
+  <div class="nav-cta">
+    <button class="btn-ghost" onclick="goWorkplace()">Se connecter</button>
+    <button class="btn-cta" onclick="goWorkplace()">Rejoindre →</button>
+  </div>
+  <div class="burger" onclick="toggleMenu()" id="burger">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#services" onclick="toggleMenu()">Services</a>
+  <a href="#pourquoi" onclick="toggleMenu()">Pourquoi nous</a>
+  <a href="#temoignages" onclick="toggleMenu()">Témoignages</a>
+  <a href="#rejoindre" onclick="toggleMenu()">Contact</a>
+  <button class="btn-cta" style="margin-top:6px;width:100%;padding:13px" onclick="goWorkplace()">Se connecter / Rejoindre →</button>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero" id="accueil">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="hero-inner reveal">
+    <div class="hero-pill"><span class="hero-pill-dot"></span>Lomé, Togo — Afrique de l'Ouest</div>
+    <h1>
+      L'excellence<br>
+      <span class="line-or">au service du</span>
+      <span class="line-silver">Numérique</span>
+    </h1>
+    <p class="hero-desc">
+      Dell Digital accompagne les <strong>entreprises et entrepreneurs</strong> dans leur transformation numérique — formations, stratégie digitale, création web et consulting IT.
+    </p>
+    <div class="hero-btns">
+      <button class="btn-hero-main" onclick="goWorkplace()">Accéder à la plateforme →</button>
+      <button class="btn-hero-sec" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})">Découvrir nos services</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-val">200+</div>
+        <div class="hstat-lbl">Clients formés</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">5 ans</div>
+        <div class="hstat-lbl">D'expérience</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">98%</div>
+        <div class="hstat-lbl">Satisfaction</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">12+</div>
+        <div class="hstat-lbl">Partenaires</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SERVICES ── -->
+<section id="services">
+  <div class="section-head reveal">
+    <div class="section-label">Ce que nous faisons</div>
+    <h2 class="section-title">Nos <span>services</span></h2>
+    <p class="section-sub">Des solutions digitales complètes adaptées aux réalités du marché africain.</p>
+  </div>
+  <div class="services-grid">
+    <div class="scard reveal">
+      <span class="scard-ic">🎓</span>
+      <div class="scard-title">Formations Digitales</div>
+      <p class="scard-desc">Programmes intensifs en marketing digital, création de contenu, e-commerce et outils bureautiques. Certifications reconnues et accompagnement personnalisé.</p>
+      <span class="scard-tag">Certifiant</span>
+    </div>
+    <div class="scard reveal">
+      <span class="scard-ic">🌐</span>
+      <div class="scard-title">Création Web & Appli</div>
+      <p class="scard-desc">Sites vitrines, boutiques en ligne, applications mobiles et dashboards sur mesure. Design moderne, responsive et optimisé pour le marché local.</p>
+      <span class="scard-tag">Sur mesure</span>
+    </div>
+    <div class="scard reveal">
+      <span class="scard-ic">📣</span>
+      <div class="scard-title">Stratégie Digitale</div>
+      <p class="scard-desc">Audit de présence en ligne, plan éditorial, gestion des réseaux sociaux et campagnes publicitaires Meta & Google adaptées à votre budget.</p>
+      <span class="scard-tag">360°</span>
+    </div>
+    <div class="scard reveal">
+      <span class="scard-ic">💼</span>
+      <div class="scard-title">Consulting IT</div>
+      <p class="scard-desc">Accompagnement à la digitalisation de votre entreprise, choix des outils adaptés, formation des équipes et déploiement de solutions cloud.</p>
+      <span class="scard-tag">Entreprise</span>
+    </div>
+    <div class="scard reveal">
+      <span class="scard-ic">📊</span>
+      <div class="scard-title">Analyse & Data</div>
+      <p class="scard-desc">Tableaux de bord analytiques, rapports de performance, suivi KPIs et aide à la décision basée sur les données réelles de votre activité.</p>
+      <span class="scard-tag">Data-driven</span>
+    </div>
+    <div class="scard reveal">
+      <span class="scard-ic">🤝</span>
+      <div class="scard-title">Partenariats B2B</div>
+      <p class="scard-desc">Programmes de partenariat pour agences, ONG et institutions souhaitant intégrer nos modules de formation ou co-développer des projets digitaux.</p>
+      <span class="scard-tag">Partenaire</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── POURQUOI NOUS ── -->
+<section id="pourquoi">
+  <div class="pq-grid">
+    <div class="reveal">
+      <div class="section-label">Pourquoi nous choisir</div>
+      <h2 class="section-title">L'excellence <span>locale</span>,<br>les standards <span>globaux</span></h2>
+      <p class="section-sub" style="margin-bottom:32px">Nous combinons expertise technique internationale et connaissance du terrain africain pour des résultats concrets.</p>
+      <div class="pq-list">
+        <div class="pq-item">
+          <div class="pq-ic">🚀</div>
+          <div>
+            <h4>Approche orientée résultats</h4>
+            <p>Chaque mission est définie avec des objectifs mesurables. Nous ne vendons pas des heures, nous livrons des résultats.</p>
+          </div>
+        </div>
+        <div class="pq-item">
+          <div class="pq-ic">🌍</div>
+          <div>
+            <h4>Expertise du marché africain</h4>
+            <p>Connaissance profonde des réalités locales — Mobile Money, connectivité, comportements utilisateurs et culture de marché.</p>
+          </div>
+        </div>
+        <div class="pq-item">
+          <div class="pq-ic">🔐</div>
+          <div>
+            <h4>Suivi & support continu</h4>
+            <p>Accès à notre plateforme Workplace, suivi des missions en temps réel et support dédié après chaque intervention.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pq-visual reveal">
+      <div class="pq-badge">📈 Performances 2024-2025</div>
+      <div class="pq-big">98%</div>
+      <div class="pq-label">Taux de satisfaction client</div>
+      <div class="pq-bar">
+        <div class="pq-bar-top"><span class="pq-bar-name">Formations complétées</span><span class="pq-bar-pct">94%</span></div>
+        <div class="pq-track"><div class="pq-fill" style="width:94%"></div></div>
+      </div>
+      <div class="pq-bar">
+        <div class="pq-bar-top"><span class="pq-bar-name">Projets livrés à temps</span><span class="pq-bar-pct">97%</span></div>
+        <div class="pq-track"><div class="pq-fill" style="width:97%"></div></div>
+      </div>
+      <div class="pq-bar">
+        <div class="pq-bar-top"><span class="pq-bar-name">Clients récurrents</span><span class="pq-bar-pct">78%</span></div>
+        <div class="pq-track"><div class="pq-fill" style="width:78%"></div></div>
+      </div>
+      <div class="pq-bar">
+        <div class="pq-bar-top"><span class="pq-bar-name">Recommandations actives</span><span class="pq-bar-pct">85%</span></div>
+        <div class="pq-track"><div class="pq-fill" style="width:85%"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TÉMOIGNAGES ── -->
+<section id="temoignages">
+  <div class="section-head reveal" style="text-align:center">
+    <div class="section-label" style="text-align:center">Ils nous font confiance</div>
+    <h2 class="section-title" style="text-align:center">Ce que disent <span>nos clients</span></h2>
+  </div>
+  <div class="tcard-grid">
+    <div class="tcard reveal">
+      <div class="tcard-quote">"</div>
+      <p class="tcard-text">La formation en marketing digital de Dell Digital a complètement transformé notre approche. En 3 mois, nos ventes en ligne ont augmenté de 60%.</p>
+      <div class="tcard-author">
+        <div class="tcard-avatar">AK</div>
+        <div>
+          <div class="tcard-name">Ama Koklou</div>
+          <div class="tcard-role">Fondatrice, Boutique Mode Lomé</div>
+          <div class="tcard-stars">★★★★★</div>
+        </div>
+      </div>
+    </div>
+    <div class="tcard reveal">
+      <div class="tcard-quote">"</div>
+      <p class="tcard-text">Notre site e-commerce livré en 3 semaines, exactement comme convenu. L'équipe Dell Digital maîtrise parfaitement les outils modernes et les réalités locales.</p>
+      <div class="tcard-author">
+        <div class="tcard-avatar">KA</div>
+        <div>
+          <div class="tcard-name">Kwame Asante</div>
+          <div class="tcard-role">DG, Agro-Export Togo</div>
+          <div class="tcard-stars">★★★★★</div>
+        </div>
+      </div>
+    </div>
+    <div class="tcard reveal">
+      <div class="tcard-quote">"</div>
+      <p class="tcard-text">Le consulting IT nous a permis de digitaliser nos processus RH en 6 semaines. Un gain de temps inestimable pour notre équipe de 40 personnes.</p>
+      <div class="tcard-author">
+        <div class="tcard-avatar">MY</div>
+        <div>
+          <div class="tcard-name">Mireille Yao</div>
+          <div class="tcard-role">DRH, ONG West Africa Connect</div>
+          <div class="tcard-stars">★★★★★</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA FINAL ── -->
+<section id="rejoindre">
+  <div class="cta-inner reveal">
+    <div class="cta-tag">🚀 Prêt à démarrer ?</div>
+    <h2 class="cta-title">Rejoignez la communauté<br><span>Dell Digital</span></h2>
+    <p class="cta-sub">Accédez à notre plateforme Workplace, suivez vos formations, gérez vos projets et connectez-vous avec notre équipe d'experts.</p>
+    <div class="cta-btns">
+      <button class="btn-cta-big" onclick="goWorkplace()">Accéder à la plateforme →</button>
+      <button class="btn-cta-sec" onclick="goWorkplace()">Créer un compte</button>
+    </div>
+    <div class="cta-note">Déjà membre ? <span onclick="goWorkplace()" style="cursor:pointer">Se connecter →</span></div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <h3>DELL <span>DIGITAL</span></h3>
+      <p>Consulting Numérique au service des entreprises et entrepreneurs d'Afrique de l'Ouest.</p>
+      <div class="footer-tagline">L'excellence au service du Numérique</div>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <a href="#services">Formations digitales</a>
+      <a href="#services">Création web</a>
+      <a href="#services">Stratégie digitale</a>
+      <a href="#services">Consulting IT</a>
+    </div>
+    <div class="footer-col">
+      <h4>Plateforme</h4>
+      <a href="index_html_Workplace__3_.html">Se connecter</a>
+      <a href="index_html_Workplace__3_.html">Créer un compte</a>
+      <a href="index_html_Workplace__3_.html">Dashboard</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <a href="#">Lomé, Togo</a>
+      <a href="mailto:delldigital1@gmail.com">delldigital1@gmail.com</a>
+      <a href="#">WhatsApp</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 Dell Digital — Consulting Numérique. Tous droits réservés.</div>
+    <div class="footer-socials">
+      <div class="fsoc">📘</div>
+      <div class="fsoc">📸</div>
+      <div class="fsoc">🐦</div>
+      <div class="fsoc">💼</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Navigation vers le dashboard ──
+function goWorkplace(){
+  window.location.href = 'index_html_Workplace__3_.html';
+}
+
+// ── Menu mobile ──
+function toggleMenu(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); observer.unobserve(e.target); }});
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// ── Navbar scroll ──
+window.addEventListener('scroll',()=>{
+  const nav = document.getElementById('navbar');
+  nav.style.background = window.scrollY > 60
+    ? 'rgba(6,6,6,0.98)'
+    : 'rgba(8,8,8,0.85)';
+});
+</script>
+</body>
+</html>
