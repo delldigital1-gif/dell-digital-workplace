@@ -922,9 +922,11 @@ select.ucm-input option{background:var(--surf)}
     <a href="#l-services">Services</a>
     <a href="#presentation">À propos</a>
     <a href="#l-temoignages">Témoignages</a>
+    <a href="javascript:void(0)" onclick="visitBoutique()">🛒 Boutique</a>
     <a href="#l-rejoindre">Contact</a>
   </div>
   <div class="nav-cta">
+    <button class="btn-ghost" onclick="visitBoutique()">🛒 Boutique</button>
     <button class="btn-ghost" onclick="goWorkplace()">Se connecter</button>
     <button class="btn-cta" onclick="goWorkplace()">Rejoindre →</button>
   </div>
@@ -936,6 +938,7 @@ select.ucm-input option{background:var(--surf)}
   <a href="#l-services" onclick="toggleMenu()">Services</a>
   <a href="#presentation" onclick="toggleMenu()">À propos</a>
   <a href="#l-temoignages" onclick="toggleMenu()">Témoignages</a>
+  <a href="javascript:void(0)" onclick="toggleMenu();visitBoutique()">🛒 Boutique</a>
   <a href="#l-rejoindre" onclick="toggleMenu()">Contact</a>
   <button class="btn-cta" style="margin-top:6px;width:100%;padding:13px" onclick="goWorkplace()">Se connecter / Rejoindre →</button>
 </div>
@@ -957,6 +960,7 @@ select.ucm-input option{background:var(--surf)}
     <div class="hero-btns">
       <button class="btn-hero-main" onclick="goWorkplace()">Accéder à la plateforme →</button>
       <button class="btn-hero-sec" onclick="document.getElementById('l-services').scrollIntoView({behavior:'smooth'})">Découvrir nos services</button>
+      <button class="btn-hero-sec" onclick="visitBoutique()">🛒 Visiter la boutique</button>
     </div>
     <div class="hero-stats">
       <div class="hstat"><div class="hstat-val">200+</div><div class="hstat-lbl">Clients formés</div></div>
@@ -1050,7 +1054,7 @@ select.ucm-input option{background:var(--surf)}
       <div class="footer-tagline">L'excellence au service du Numérique</div>
     </div>
     <div class="footer-col"><h4>Services</h4><a href="#l-services">Formations digitales</a><a href="#l-services">Création web</a><a href="#l-services">Stratégie digitale</a><a href="#l-services">Consulting IT</a></div>
-    <div class="footer-col"><h4>Plateforme</h4><a href="#" onclick="goWorkplace()">Se connecter</a><a href="#" onclick="goWorkplace()">Créer un compte</a><a href="#" onclick="goWorkplace()">Dashboard</a></div>
+    <div class="footer-col"><h4>Plateforme</h4><a href="#" onclick="goWorkplace()">Se connecter</a><a href="#" onclick="goWorkplace()">Créer un compte</a><a href="#" onclick="visitBoutique()">🛒 Boutique</a><a href="#" onclick="goWorkplace()">Dashboard</a></div>
     <div class="footer-col"><h4>Contact</h4><a href="#">Lomé, Togo</a><a href="mailto:delldigital1@gmail.com">delldigital1@gmail.com</a><a href="https://wa.me/22898069111" target="_blank">WhatsApp</a></div>
   </div>
   <div class="footer-bottom">
@@ -1219,9 +1223,9 @@ const ADMINS = {
 };
 
 const ACCESS = {
-  admin: ['accueil','formations','communaute','projets','clients','services','partenaires','communication','analyses','admin','devis','pipeline','certifications','contact'],
-  membre: ['accueil','formations','communaute','projets','devis','certifications','contact'],
-  visiteur: ['accueil','contact']
+  admin: ['accueil','formations','communaute','projets','boutique','clients','services','partenaires','communication','analyses','admin','devis','pipeline','certifications','contact'],
+  membre: ['accueil','formations','communaute','projets','boutique','devis','certifications','contact'],
+  visiteur: ['accueil','boutique','contact']
 };
 
 let currentUser = { role: 'visiteur', name: 'Visiteur', email: '' };
@@ -1241,6 +1245,20 @@ function goWorkplace(){
 function goLanding() {
   document.getElementById('workplacePage').style.display = 'none';
   document.getElementById('landingPage').style.display = 'block';
+  window.scrollTo(0,0);
+}
+function visitBoutique(){
+  currentUser={role:'visiteur',name:'Visiteur',email:'',status:'visiteur'};
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('landingPage').style.display='none';
+  document.getElementById('workplacePage').style.display='block';
+  document.getElementById('appShell').style.display='block';
+  document.getElementById('userName').textContent='Visiteur';
+  document.getElementById('userRoleLbl').textContent='Visiteur';
+  document.querySelector('.user-avatar').textContent='V';
+  document.getElementById('roleDot').style.background='var(--green)';
+  document.body.classList.remove('is-admin');
+  buildMenu(); navigate('boutique','catalogue');
   window.scrollTo(0,0);
 }
 function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
@@ -1284,6 +1302,10 @@ const MENU = [
       {id:'tableau',lb:'Tableau projets'},
       {id:'annonces',lb:'Annonces projets'},
       {id:'publications',lb:'Mes publications'}
+    ]},
+    { id:'boutique', ic:'🛒', lb:'Boutique', subs:[
+      {id:'catalogue',lb:'Catalogue'},
+      {id:'commandes',lb:'Commandes'}
     ]}
   ]},
   { label:'BUSINESS', items:[
@@ -1365,6 +1387,8 @@ const DD={
     {id:'lv2',nom:'Assistant IA en 1h — Standard (Jour 1)',sessionId:'s2',room:'ddw-standard-250626',date:'2026-06-25T18:00',statut:'planifie'},
     {id:'lv3',nom:'Assistant IA en 1h — Étudiants (Jour 1)',sessionId:'s3',room:'ddw-etudiants-280626',date:'2026-06-28T18:00',statut:'planifie'}
   ],
+  boutique_produits:[],
+  boutique_commandes:[],
   modules:[
     {id:'mod1',ic:'🤖',titre:'Assistant IA Personnalise',desc:"Configurer Claude pour votre metier et vos taches.",niveau:'Debutant',duree:'2h'},
     {id:'mod2',ic:'⚙️',titre:'Automatisation RH',desc:"Recrutement, tri CV, grille salariale avec IA.",niveau:'Intermediaire',duree:'4h'},
@@ -1400,6 +1424,7 @@ const DD={
 const SUB_UCM={
   'accueil-annonces':'annonce','accueil-agenda':'event',
   'formations-sessions':'session','formations-live':'liveroom','formations-modules':'module','formations-ressources':'ressource',
+  'boutique-catalogue':'produit',
   'communaute-forum':'post','communaute-membres':'membre','communaute-evenements':'event',
   'projets-tableau':'projet','projets-annonces':'projet_anc','projets-publications':'projet_anc',
   'clients-liste':'membre','pipeline-kanban':'deal',
@@ -2689,10 +2714,107 @@ PAGES['projets-publications']=function(){
   return h;
 }
 
+PAGES['boutique-catalogue']=function(){
+  const isA=currentUser.role==='admin';
+  const all=DS.get('boutique_produits',DD.boutique_produits);
+  const filter=window.__boutiqueFilter||'all';
+  const prods=filter==='all'?all:all.filter(p=>p.cat===filter);
+  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>🛒 <span class="o">Boutique</span></h1><p>Ebooks & tableaux numériques — paiement T-Money, Flooz, Visa.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'produit\')">＋ Ajouter un produit</button>':'')+'</div>';
+  h+='<div class="mem-filters" id="boutiqueFilters"><div class="mem-filter'+(filter==='all'?' active':'')+'" onclick="filterBoutique(\'all\')">Tous ('+all.length+')</div><div class="mem-filter'+(filter==='ebook'?' active':'')+'" onclick="filterBoutique(\'ebook\')">📚 Ebooks ('+all.filter(p=>p.cat==='ebook').length+')</div><div class="mem-filter'+(filter==='tableau'?' active':'')+'" onclick="filterBoutique(\'tableau\')">🖼️ Tableaux ('+all.filter(p=>p.cat==='tableau').length+')</div></div>';
+  h+='<div id="boutiqueGrid">'+renderBoutiqueGrid(prods,isA)+'</div>';
+  return h;
+}
 
-/* ══════════════════════════════════════════════════════════
-   CMS — Système complet de gestion de contenu
-══════════════════════════════════════════════════════════ */
+function renderBoutiqueGrid(prods,isA){
+  if(prods.length===0){
+    return '<div class="empty-state"><div class="empty-state-ic">🛒</div><div class="empty-state-title">Aucun produit</div><div class="empty-state-desc">'+(isA?'Ajoutez votre premier ebook ou tableau à vendre.':'Aucun produit disponible pour le moment, revenez bientôt !')+'</div>'+(isA?'<button class="btn-p" style="margin-top:14px" onclick="openUCM(\'produit\')">＋ Ajouter</button>':'')+'</div>';
+  }
+  let h='<div class="g3">';
+  prods.forEach(p=>{
+    const safeTitre=(p.titre||'').replace(/'/g,"’");
+    const ic=p.cat==='ebook'?'📚':'🖼️';
+    h+='<div class="card" style="border-top:3px solid var(--neon);display:flex;flex-direction:column">'
+      +'<div style="font-size:38px;text-align:center;margin-bottom:10px">'+ic+'</div>'
+      +'<div style="font-weight:700;font-size:14px;margin-bottom:6px">'+(p.titre||'')+'</div>'
+      +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;flex:1">'+(p.desc||'')+'</div>'
+      +'<div style="font-family:Orbitron,monospace;font-weight:700;color:var(--or);font-size:15px;margin-bottom:10px">'+(p.prix||'0')+' FCFA</div>'
+      +'<button class="btn-p" style="width:100%" onclick="openAchatModal(\''+p.id+'\')">🛒 Acheter</button>'
+      +(isA?'<div style="display:flex;gap:6px;margin-top:8px"><button class="btn-anc btn-anc-edit" style="flex:1" onclick="openUCM(\'produit_edit\',\''+p.id+'\')">✏️ Modifier</button><button class="btn-anc btn-anc-del" style="flex:1" onclick="askConfirm(\'Supprimer ce produit ?\',\'del_produit\',\''+p.id+'\')">🗑️ Supprimer</button></div>':'')
+      +'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+function filterBoutique(f){
+  window.__boutiqueFilter=f;
+  const isA=currentUser.role==='admin';
+  const all=DS.get('boutique_produits',DD.boutique_produits);
+  const prods=f==='all'?all:all.filter(p=>p.cat===f);
+  document.getElementById('boutiqueGrid').innerHTML=renderBoutiqueGrid(prods,isA);
+  document.querySelectorAll('#boutiqueFilters .mem-filter').forEach(el=>el.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function openAchatModal(produitId){
+  const p=DS.get('boutique_produits',DD.boutique_produits).find(x=>x.id===produitId);
+  if(!p){showToast('Produit introuvable','error');return;}
+  window.__achatProduit=p;
+  const modal=document.getElementById('ucModal');
+  if(!modal){showToast('Erreur modale','error');return;}
+  document.getElementById('ucmTitle').textContent='🛒 Commander — '+p.titre;
+  document.getElementById('ucmFooter').innerHTML='<button class="btn-ucm-cancel" onclick="closeUCM()">Annuler</button><button class="btn-ucm-submit" onclick="submitAchat()">Valider la précommande</button>';
+  document.getElementById('ucmBody').innerHTML=
+    '<div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--neon)">💳 Le paiement en ligne (T-Money, Flooz, Visa) arrive très prochainement. Pour le moment, votre commande est enregistrée et nous vous contactons sur WhatsApp pour finaliser le paiement.</div>'
+    +'<div class="ucm-field"><label>Produit</label><input class="ucm-input" value="'+p.titre+' — '+p.prix+' FCFA" disabled style="opacity:.7"></div>'
+    +'<div class="ucm-field"><label>Nom complet *</label><input class="ucm-input" id="f_achatNom" placeholder="Votre nom"></div>'
+    +'<div class="ucm-field"><label>Téléphone (WhatsApp) *</label><input class="ucm-input" id="f_achatTel" placeholder="+228 ..."></div>'
+    +'<div class="ucm-field"><label>Email (optionnel)</label><input class="ucm-input" id="f_achatEmail" placeholder="email@exemple.com"></div>';
+  modal.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function submitAchat(){
+  const nom=document.getElementById('f_achatNom').value.trim();
+  const tel=document.getElementById('f_achatTel').value.trim();
+  const email=document.getElementById('f_achatEmail').value.trim();
+  if(!nom||!tel){showToast('Nom et téléphone requis','error');return;}
+  const p=window.__achatProduit;
+  const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
+  const cmd={id:'cmd_'+Date.now(),produitId:p.id,produitTitre:p.titre,montant:p.prix,clientNom:nom,clientTel:tel,clientEmail:email,statut:'attente_paiement',date:new Date().toISOString()};
+  cmds.push(cmd); DS.set('boutique_commandes',cmds);
+  closeUCM();
+  showToast('Précommande enregistrée !','success');
+  const msg=encodeURIComponent('🛒 Nouvelle précommande Dell Digital\n\nProduit: '+p.titre+'\nPrix: '+p.prix+' FCFA\nClient: '+nom+'\nTéléphone: '+tel+(email?'\nEmail: '+email:'')+'\n\nMerci de me confirmer le paiement (T-Money/Flooz) pour finaliser.');
+  window.open('https://wa.me/22898069111?text='+msg,'_blank');
+}
+
+PAGES['boutique-commandes']=function(){
+  if(currentUser.role!=='admin') return '<div class="lock-overlay"><div class="lock-icon">🛡️</div><div class="lock-title">Admin uniquement</div><div class="lock-desc">La liste des commandes est réservée aux administrateurs.</div></div>';
+  const cmds=DS.get('boutique_commandes',DD.boutique_commandes).slice().reverse();
+  let h='<div class="ph anim-up"><h1>📦 <span class="o">Commandes</span></h1><p>Précommandes reçues via la boutique.</p></div>';
+  if(cmds.length===0){
+    h+='<div class="empty-state"><div class="empty-state-ic">📦</div><div class="empty-state-title">Aucune commande</div><div class="empty-state-desc">Les précommandes de la boutique apparaîtront ici.</div></div>';
+  } else {
+    h+='<div style="display:flex;flex-direction:column;gap:10px">';
+    cmds.forEach(c=>{
+      const d=new Date(c.date); const dStr=isNaN(d)?'—':d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      const stBadge=c.statut==='paye'?'<span class="sbadge actif">✅ Payée</span>':'<span class="sbadge new">⏳ En attente</span>';
+      h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'
+        +'<div><div style="font-weight:700;font-size:13px">'+c.produitTitre+' — '+c.montant+' FCFA</div><div style="font-size:11.5px;color:var(--muted);margin-top:4px">👤 '+c.clientNom+' · 📱 '+c.clientTel+(c.clientEmail?' · ✉️ '+c.clientEmail:'')+'</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px">📅 '+dStr+'</div></div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+stBadge
+        +(c.statut!=='paye'?'<button class="btn-anc" onclick="marquerPaye(\''+c.id+'\')">✅ Marquer payée</button>':'')
+        +'</div></div>';
+    });
+    h+='</div>';
+  }
+  return h;
+}
+function marquerPaye(id){
+  const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
+  const c=cmds.find(x=>x.id===id);
+  if(c){c.statut='paye';DS.set('boutique_commandes',cmds);showToast('Commande marquée payée','success');navigate('boutique','commandes');}
+}
+
+
 
 let _ucmType='', _ucmEditId=null, _confirmAction=null;
 
@@ -2708,6 +2830,8 @@ const UCM_CFG={
   session_edit:{title:'✏️ Modifier la Session',submit:'Enregistrer'},
   liveroom:{title:'🎥 Nouvelle Salle Live',submit:'Créer'},
   liveroom_edit:{title:'✏️ Modifier la Salle Live',submit:'Enregistrer'},
+  produit:{title:'🛒 Nouveau Produit',submit:'Créer'},
+  produit_edit:{title:'✏️ Modifier le Produit',submit:'Enregistrer'},
   module:{title:'📚 Nouveau Module',submit:'Ajouter',hasAI:true},
   module_edit:{title:'✏️ Modifier le Module',submit:'Enregistrer'},
   ressource:{title:'📁 Nouvelle Ressource',submit:'Ajouter'},
@@ -2762,6 +2886,7 @@ function buildUCMBody(type,editId){
     if(t.includes('membre')) return DS.get('membres',DD.membres).find(m=>m.id===id);
     if(t.includes('session')) return DS.get('sessions_list',DD.sessions).find(s=>s.id===id);
     if(t.includes('liveroom')) return DS.get('live_rooms',DD.live_rooms).find(r=>r.id===id);
+    if(t.includes('produit')) return DS.get('boutique_produits',DD.boutique_produits).find(p=>p.id===id);
     if(t.includes('module')) return DS.get('modules_cours',DD.modules).find(m=>m.id===id);
     if(t.includes('ressource')) return DS.get('ressources',DD.ressources).find(r=>r.id===id);
     if(t.includes('post')) return DS.get('forum_posts',DD.forum).find(p=>p.id===id);
@@ -2789,6 +2914,14 @@ function buildUCMBody(type,editId){
     const sessList=DS.get('sessions_list',DD.sessions);
     const sessOpts=sessList.map(s=>'<option value="'+s.id+'" '+(d.sessionId===s.id?'selected':'')+'>'+s.nom+' — '+s.type+'</option>').join('');
     return '<div class="ucm-field"><label>Nom de la salle *</label><input class="ucm-input" id="f_nom" placeholder="Ex: Assistant IA — Premium Jour 1" value="'+(d.nom||'')+'"></div><div class="ucm-row"><div class="ucm-field"><label>Session liée</label><select class="ucm-input" id="f_sessionId"><option value="">— Aucune —</option>'+sessOpts+'</select></div><div class="ucm-field"><label>Date & Heure *</label><input class="ucm-input" id="f_date" type="datetime-local" value="'+(d.date||'')+'"></div></div><div class="ucm-field"><label>Statut</label><select class="ucm-input" id="f_statut"><option value="planifie" '+(d.statut==='planifie'||!d.statut?'selected':'')+'>🔵 Planifiée</option><option value="actif" '+(d.statut==='actif'?'selected':'')+'>🟢 En direct</option><option value="termine" '+(d.statut==='termine'?'selected':'')+'>⚫ Terminée</option></select></div>'+(isEdit?'<div class="ucm-field"><label>Code de la salle</label><input class="ucm-input" id="f_room" value="'+(d.room||'')+'" disabled style="opacity:.6"></div>':'<div style="font-size:11px;color:var(--muted);margin-top:4px">🔑 Un code de salle unique sera généré automatiquement à la création.</div>');
+  }
+  if(type.includes('produit')){
+    return '<div class="ucm-field"><label>Titre du produit *</label><input class="ucm-input" id="f_titre" placeholder="Ex: Guide IA pour Entrepreneurs" value="'+(d.titre||'')+'"></div>'
+      +'<div class="ucm-field"><label>Catégorie *</label><select class="ucm-input" id="f_cat"><option value="ebook" '+(d.cat==='ebook'||!d.cat?'selected':'')+'>📚 Ebook</option><option value="tableau" '+(d.cat==='tableau'?'selected':'')+'>🖼️ Tableau</option></select></div>'
+      +'<div class="ucm-field"><label>Description courte *</label><textarea class="ucm-input" id="f_desc" rows="3" placeholder="Présentez le produit en quelques lignes">'+(d.desc||'')+'</textarea></div>'
+      +'<div class="ucm-field"><label>Prix (FCFA) *</label><input class="ucm-input" id="f_prix" type="number" placeholder="10000" value="'+(d.prix||'')+'"></div>'
+      +'<div class="ucm-field"><label>Lien de livraison (Drive, etc.)</label><input class="ucm-input" id="f_lien" placeholder="https://drive.google.com/…" value="'+(d.lien||'')+'"></div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:4px">💡 Le lien de livraison sera envoyé manuellement au client après confirmation du paiement (automatisation prévue avec CinetPay).</div>';
   }
   if(type.includes('module')){
     return aiBlock(cfg)+'<div class="ucm-row" style="align-items:end"><div class="ucm-field" style="flex:0 0 80px"><label>Icône</label><input class="ucm-input" id="f_ic" style="text-align:center;font-size:22px" value="'+(d.ic||'📚')+'"></div><div class="ucm-field" style="flex:1"><label>Titre *</label><input class="ucm-input" id="f_titre" placeholder="Ex: Stratégie IA pour PME" value="'+(d.titre||'')+'"></div></div><div class="ucm-field"><label>Description *</label><textarea class="ucm-input" id="f_desc" placeholder="Décrivez le contenu du module…">'+(d.desc||'')+'</textarea></div><div class="ucm-row"><div class="ucm-field"><label>Niveau</label><select class="ucm-input" id="f_niveau"><option '+(d.niveau==='Debutant'?'selected':'')+'>Debutant</option><option '+(d.niveau==='Intermediaire'?'selected':'')+'>Intermediaire</option><option '+(d.niveau==='Avance'?'selected':'')+'>Avance</option></select></div><div class="ucm-field"><label>Durée</label><input class="ucm-input" id="f_duree" placeholder="Ex: 3h" value="'+(d.duree||'')+'"></div></div>';
@@ -2866,6 +2999,12 @@ function submitUCM(isDraft){
       const item={id:_ucmEditId||uid(),nom,sessionId:g('f_sessionId')||'',date,statut:g('f_statut')||'planifie',room};
       if(_ucmEditId)DS.upd('live_rooms',_ucmEditId,item);else DS.push('live_rooms',item,DD.live_rooms);
       showToast(_ucmEditId?'Salle modifiée !':'Salle créée !','success');
+    }
+    else if(t.includes('produit')){
+      const titre=g('f_titre'),prix=g('f_prix');if(!titre||!prix){showToast('Titre et prix requis','error');return;}
+      const item={id:_ucmEditId||uid(),titre,cat:g('f_cat')||'ebook',desc:g('f_desc')||'',prix,lien:g('f_lien')||''};
+      if(_ucmEditId)DS.upd('boutique_produits',_ucmEditId,item);else DS.push('boutique_produits',item,DD.boutique_produits);
+      showToast(_ucmEditId?'Produit modifié !':'Produit ajouté !','success');
     }
     else if(t.includes('module')){
       const titre=g('f_titre'),desc=g('f_desc');if(!titre||!desc){showToast('Titre et description requis','error');return;}
@@ -2948,6 +3087,7 @@ function executeConfirm(){
     del_event:(id)=>{DS.remove('events',id);showToast('Événement supprimé','success');nav();},
     del_session:(id)=>{DS.remove('sessions_list',id);showToast('Session supprimée','success');nav();},
     del_liveroom:(id)=>{DS.remove('live_rooms',id);showToast('Salle supprimée','success');nav();},
+    del_produit:(id)=>{DS.remove('boutique_produits',id);showToast('Produit supprimé','success');nav();},
     del_module:(id)=>{DS.remove('modules_cours',id);showToast('Module supprimé','success');nav();},
     del_ressource:(id)=>{DS.remove('ressources',id);showToast('Ressource supprimée','success');nav();},
     del_post:(id)=>{DS.remove('forum_posts',id);showToast('Post supprimé','success');nav();},
