@@ -2849,8 +2849,9 @@ function renderBoutiqueGrid(prods,isA){
   prods.forEach(p=>{
     const safeTitre=(p.titre||'').replace(/'/g,"’");
     const ic=p.cat==='ebook'?'📚':'🖼️';
+    const media=p.image?'<img src="'+p.image+'" style="width:100%;height:150px;object-fit:cover;border-radius:8px;margin-bottom:10px">':'<div style="font-size:38px;text-align:center;margin-bottom:10px">'+ic+'</div>';
     h+='<div class="card" style="border-top:3px solid var(--neon);display:flex;flex-direction:column">'
-      +'<div style="font-size:38px;text-align:center;margin-bottom:10px">'+ic+'</div>'
+      +media
       +'<div style="font-weight:700;font-size:14px;margin-bottom:6px">'+(p.titre||'')+'</div>'
       +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;flex:1">'+(p.desc||'')+'</div>'
       +'<div style="font-family:Orbitron,monospace;font-weight:700;color:var(--or);font-size:15px;margin-bottom:10px">'+(p.prix||'0')+' FCFA</div>'
@@ -3005,6 +3006,33 @@ const UCM_CFG={
   proj_anc_edit:{title:'✏️ Modifier l\'Annonce',submit:'Enregistrer'}
 };
 
+function handleProductImageUpload(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){showToast('Veuillez choisir un fichier image','error');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const maxW=700;
+      let w=img.width,h=img.height;
+      if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.75);
+      const hidden=document.getElementById('f_image');
+      const prev=document.getElementById('f_image_preview');
+      if(hidden) hidden.value=dataUrl;
+      if(prev){ prev.src=dataUrl; prev.style.display='block'; }
+      showToast('Image chargée !','success');
+    };
+    img.onerror=function(){showToast('Image invalide','error');};
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){showToast('Erreur de lecture du fichier','error');};
+  reader.readAsDataURL(file);
+}
 function openUCM(type, editId){
   const modal=document.getElementById('ucModal');
   if(!modal){showToast('Erreur modale','error');return;}
@@ -3076,6 +3104,7 @@ function buildUCMBody(type,editId){
   if(type.includes('produit')){
     return '<div class="ucm-field"><label>Titre du produit *</label><input class="ucm-input" id="f_titre" placeholder="Ex: Guide IA pour Entrepreneurs" value="'+(d.titre||'')+'"></div>'
       +'<div class="ucm-field"><label>Catégorie *</label><select class="ucm-input" id="f_cat"><option value="ebook" '+(d.cat==='ebook'||!d.cat?'selected':'')+'>📚 Ebook</option><option value="tableau" '+(d.cat==='tableau'?'selected':'')+'>🖼️ Tableau</option></select></div>'
+      +'<div class="ucm-field"><label>Image du produit (couverture ebook / photo du tableau)</label><input type="file" accept="image/*" class="ucm-input" onchange="handleProductImageUpload(this)"><img id="f_image_preview" src="'+(d.image||'')+'" style="max-width:140px;max-height:140px;object-fit:cover;border-radius:8px;margin-top:8px;display:'+(d.image?'block':'none')+'"><input type="hidden" id="f_image" value="'+(d.image||'')+'"><div style="font-size:11px;color:var(--muted);margin-top:4px">L\'image est compressée et stockée automatiquement — pas besoin d\'hébergement externe.</div></div>'
       +'<div class="ucm-field"><label>Description courte *</label><textarea class="ucm-input" id="f_desc" rows="3" placeholder="Présentez le produit en quelques lignes">'+(d.desc||'')+'</textarea></div>'
       +'<div class="ucm-field"><label>Prix (FCFA) *</label><input class="ucm-input" id="f_prix" type="number" placeholder="10000" value="'+(d.prix||'')+'"></div>'
       +'<div class="ucm-field"><label>Lien de livraison (Drive, etc.)</label><input class="ucm-input" id="f_lien" placeholder="https://drive.google.com/…" value="'+(d.lien||'')+'"></div>'
@@ -3167,7 +3196,7 @@ function submitUCM(isDraft){
     }
     else if(t.includes('produit')){
       const titre=g('f_titre'),prix=g('f_prix');if(!titre||!prix){showToast('Titre et prix requis','error');return;}
-      const item={id:_ucmEditId||uid(),titre,cat:g('f_cat')||'ebook',desc:g('f_desc')||'',prix,lien:g('f_lien')||''};
+      const item={id:_ucmEditId||uid(),titre,cat:g('f_cat')||'ebook',image:g('f_image')||'',desc:g('f_desc')||'',prix,lien:g('f_lien')||''};
       if(_ucmEditId)DS.upd('boutique_produits',_ucmEditId,item);else DS.push('boutique_produits',item,DD.boutique_produits);
       showToast(_ucmEditId?'Produit modifié !':'Produit ajouté !','success');
     }
