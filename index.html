@@ -1228,18 +1228,56 @@ const ACCESS = {
 };
 
 let currentUser = { role: 'visiteur', name: 'Visiteur', email: '' };
+
+function saveSession(){ try{ localStorage.setItem('dd_session', JSON.stringify({role:currentUser.role,name:currentUser.name,email:currentUser.email,status:currentUser.status})); }catch(e){} }
+function loadSession(){ try{ const v=localStorage.getItem('dd_session'); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function clearSession(){ try{ localStorage.removeItem('dd_session'); }catch(e){} }
+function restoreSessionUI(sess){
+  currentUser=sess;
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('landingPage').style.display='none';
+  document.getElementById('workplacePage').style.display='block';
+  document.getElementById('appShell').style.display='block';
+  document.getElementById('userName').textContent=sess.name.split(' ')[0];
+  document.getElementById('userRoleLbl').textContent=sess.role.charAt(0).toUpperCase()+sess.role.slice(1);
+  document.querySelector('.user-avatar').textContent=sess.name[0]||'U';
+  const cols={admin:'var(--or)',membre:'var(--neon)',visiteur:'var(--green)'};
+  document.getElementById('roleDot').style.background=cols[sess.role]||'var(--muted)';
+  document.body.classList.toggle('is-admin',sess.role==='admin');
+  buildMenu(); navigate('accueil','dashboard');
+  setTimeout(initChat,1000);
+}
+const __savedSession=loadSession();
+if(__savedSession && __savedSession.role!=='visiteur'){
+  window.__sessionRestored=true;
+  setTimeout(()=>{ try{ restoreSessionUI(__savedSession); }catch(e){} },50);
+}
+
 const __roomParam=new URLSearchParams(location.search).get('room');
-if(__roomParam){ window.__pendingRoom=__roomParam; setTimeout(()=>{ try{ goWorkplace(); showToast('Connectez-vous pour rejoindre la session','info'); }catch(e){} },50); }
+if(__roomParam){
+  if(window.__sessionRestored){
+    setTimeout(()=>{
+      try{
+        const room=DS.get('live_rooms',DD.live_rooms).find(r=>r.room===__roomParam);
+        navigate('formations','live');
+        if(room) setTimeout(()=>joinLiveRoom(room.room,__savedSession.role==='admin',room.nom),250);
+      }catch(e){}
+    },250);
+  } else {
+    window.__pendingRoom=__roomParam;
+    setTimeout(()=>{ try{ goWorkplace(); showToast('Connectez-vous pour rejoindre la session','info'); }catch(e){} },50);
+  }
+}
 const __paymentStatus=new URLSearchParams(location.search).get('payment');
 const __paymentTxn=new URLSearchParams(location.search).get('txn');
 if(__paymentStatus){
   setTimeout(()=>{
-    try{ visitBoutique(); }catch(e){}
+    try{ if(window.__sessionRestored){ navigate('boutique','catalogue'); } else { visitBoutique(); } }catch(e){}
     setTimeout(()=>{
       if(__paymentStatus==='success'){ try{ showAchatSuccess(__paymentTxn); }catch(e){} }
       else { try{ showToast('❌ Le paiement a échoué ou a été annulé.','error'); }catch(e){} }
     },300);
-  },50);
+  },250);
 }
 
 /* ══════════════════════════════════════
@@ -2576,6 +2614,7 @@ function showForgot(){ showError('📧 Réinitialisation par email — à connec
 
 function loginSuccess(email,role,name,status){
   currentUser={role,name,email,status:status||'membre'};
+  saveSession();
   document.getElementById('loginPage').style.display='none';
   document.getElementById('landingPage').style.display='none';
   document.getElementById('workplacePage').style.display='block';
@@ -2601,6 +2640,7 @@ function loginSuccess(email,role,name,status){
 
 function doLogout(){
   currentUser={role:'visiteur',name:'Visiteur',email:'',status:'visiteur'};
+  clearSession();
   try{closeAdminModal();}catch(e){}
   chatOpen=false;
   try{document.getElementById('chatPanel').classList.remove('open');}catch(e){}
