@@ -1154,7 +1154,7 @@ select.ucm-input option{background:var(--surf)}
     <span class="page-name" id="topPageName">Dashboard</span>
   </div>
   <div class="tbr">
-    <div class="tb-icon" onclick="navigate('admin','notifications')">🔔<span class="tb-badge">3</span></div>
+    <div class="tb-icon" onclick="navigate('admin','notifications')">🔔<span class="tb-badge" id="tbBadge" style="display:none">0</span></div>
     <button class="btn-action" onclick="showNewActionModal()">+ Action</button>
     <div id="userBadge" class="user-badge">
       <div class="user-avatar">U</div>
@@ -1245,6 +1245,7 @@ function restoreSessionUI(sess){
   document.getElementById('roleDot').style.background=cols[sess.role]||'var(--muted)';
   document.body.classList.toggle('is-admin',sess.role==='admin');
   buildMenu(); navigate('accueil','dashboard');
+  updateNotifBadge();
   setTimeout(initChat,1000);
 }
 const __savedSession=loadSession();
@@ -1278,6 +1279,29 @@ if(__paymentStatus){
       else { try{ showToast('❌ Le paiement a échoué ou a été annulé.','error'); }catch(e){} }
     },300);
   },250);
+}
+
+function getUnreadNotifCount(){
+  return DS.get('notifications',DD.notifications).filter(n=>!n.lue).length;
+}
+function updateNotifBadge(){
+  const badge=document.getElementById('tbBadge');
+  if(!badge) return;
+  const count=getUnreadNotifCount();
+  if(count>0){ badge.textContent=count>9?'9+':count; badge.style.display='flex'; }
+  else { badge.style.display='none'; }
+}
+function addNotification(titre,desc,icone){
+  const notifs=DS.get('notifications',DD.notifications);
+  notifs.unshift({id:'n_'+Date.now(),ic:icone||'🔔',titre,desc,time:"À l'instant",c:'var(--neon)',lue:false});
+  DS.set('notifications',notifs);
+  updateNotifBadge();
+}
+function markAllNotifsRead(){
+  const notifs=DS.get('notifications',DD.notifications);
+  notifs.forEach(n=>n.lue=true);
+  DS.set('notifications',notifs);
+  updateNotifBadge();
 }
 
 /* ══════════════════════════════════════
@@ -1444,6 +1468,11 @@ const DD={
     {id:'cp4',reseau:'LK',date:'10 juin',titre:'Session Premium — Pour les Fonctionnaires',statut:'Planifié',lien:''},
     {id:'cp5',reseau:'FB',date:'12 juin',titre:'Session Standard — Pour les Entrepreneurs',statut:'Planifié',lien:''},
     {id:'cp6',reseau:'FB+LK',date:'17 juin',titre:'Urgence — Places limitées !',statut:'Planifié',lien:''}
+  ],
+  notifications:[
+    {id:'n1',ic:'👋',titre:'Bienvenue sur Dell Digital Workplace',desc:'Votre espace de travail est prêt. Explorez les sections du menu.',time:'Il y a 2j',c:'var(--neon)',lue:false},
+    {id:'n2',ic:'🎓',titre:'Nouvelle session de formation',desc:'La session Premium du 23 juin est ouverte aux inscriptions.',time:'Il y a 1j',c:'var(--or)',lue:false},
+    {id:'n3',ic:'💳',titre:'Pensez à finaliser CinetPay',desc:'Complétez votre compte marchand pour activer les paiements en ligne.',time:'Il y a 3h',c:'var(--green)',lue:false}
   ],
   modules:[
     {id:'mod1',ic:'🤖',titre:'Assistant IA Personnalise',desc:"Configurer Claude pour votre metier et vos taches.",niveau:'Debutant',duree:'2h'},
@@ -2497,7 +2526,7 @@ PAGES['admin-dashboard'] = function() {
   return `<div class="ph anim-up"><h1>⚙️ <span class="o">Admin</span> Panel</h1><p>Tableau de bord administrateur Dell Digital.</p></div>
   <div class="g3">
     <div class="card"><div class="card-title">👥 Membres</div><div style="font-family:Orbitron,monospace;font-size:28px;font-weight:800;color:var(--or);margin-bottom:4px">3</div><div style="font-size:12px;color:var(--muted)">Comptes actifs</div></div>
-    <div class="card"><div class="card-title">🔔 Notifications</div><div style="font-family:Orbitron,monospace;font-size:28px;font-weight:800;color:var(--neon);margin-bottom:4px">3</div><div style="font-size:12px;color:var(--muted)">Non lues</div></div>
+    <div class="card"><div class="card-title">🔔 Notifications</div><div style="font-family:Orbitron,monospace;font-size:28px;font-weight:800;color:var(--neon);margin-bottom:4px">${getUnreadNotifCount()}</div><div style="font-size:12px;color:var(--muted)">Non lues</div></div>
     <div class="card"><div class="card-title">💾 Données</div><div style="font-family:Orbitron,monospace;font-size:28px;font-weight:800;color:var(--green);margin-bottom:4px">OK</div><div style="font-size:12px;color:var(--muted)">Système opérationnel</div></div>
   </div>
   <div class="card"><div class="card-title">🔐 Identifiants Admin</div>
@@ -2508,15 +2537,16 @@ PAGES['admin-dashboard'] = function() {
 };
 
 PAGES['admin-notifications'] = function() {
-  var notifs=[
-    {ic:'📋',t:'Nouvelle inscription',d:'Un utilisateur vient de s\'inscrire sur la landing page.',time:'Il y a 2min',c:'var(--neon)'},
-    {ic:'💳',t:'Paiement reçu',d:'T-Money — Confirmation de paiement en attente.',time:'Il y a 15min',c:'var(--green)'},
-    {ic:'💬',t:'Nouveau message forum',d:'Un membre a posté dans la communauté.',time:'Il y a 1h',c:'var(--or)'}
-  ];
+  const notifs=DS.get('notifications',DD.notifications);
   let h=`<div class="ph anim-up"><h1>🔔 <span class="o">Notifications</span></h1><p>Alertes et notifications système Dell Digital.</p></div>`;
-  notifs.forEach(n=>{
-    h+=`<div class="anc"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px">${n.ic}</span><div style="font-weight:700;font-size:13px;color:${n.c}">${n.t}</div><span style="margin-left:auto;font-size:11px;color:var(--muted)">${n.time}</span></div><div class="anb">${n.d}</div></div>`;
-  });
+  if(notifs.length===0){
+    h+='<div class="empty-state"><div class="empty-state-ic">🔔</div><div class="empty-state-title">Aucune notification</div><div class="empty-state-desc">Vous êtes à jour !</div></div>';
+  } else {
+    notifs.forEach(n=>{
+      h+=`<div class="anc" style="opacity:${n.lue?'0.6':'1'}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px">${n.ic}</span><div style="font-weight:700;font-size:13px;color:${n.c}">${n.titre}</div><span style="margin-left:auto;font-size:11px;color:var(--muted)">${n.time}</span></div><div class="anb">${n.desc}</div></div>`;
+    });
+  }
+  setTimeout(markAllNotifsRead,400);
   return h;
 };
 
@@ -2668,6 +2698,7 @@ function loginSuccess(email,role,name,status){
   document.getElementById('roleDot').style.background=cols[role]||'var(--muted)';
   document.body.classList.toggle('is-admin',role==='admin');
   buildMenu(); navigate('accueil','dashboard');
+  updateNotifBadge();
   showToast('Bienvenue, '+name.split(' ')[0]+' ! 👋','success');
   setTimeout(initChat,1000);
   if(window.__pendingRoom){
@@ -2695,7 +2726,33 @@ function doLogout(){
 }
 
 function showNewActionModal(){
-  showToast('Nouvelle action — sélectionnez un module','info');
+  const existing=document.getElementById('quickActionMenu');
+  if(existing){ existing.remove(); return; }
+  const isA=currentUser.role==='admin';
+  const actions=isA?[
+    {label:'📢 Nouvelle annonce',fn:"openUCM('annonce')"},
+    {label:'💬 Nouveau post (Forum)',fn:"openUCM('post')"},
+    {label:'🎓 Nouvelle session',fn:"openUCM('session')"},
+    {label:'🎥 Nouvelle salle live',fn:"openUCM('liveroom')"},
+    {label:'🛒 Nouveau produit',fn:"openUCM('produit')"},
+    {label:'📱 Post réseaux sociaux',fn:"openUCM('commpost')"},
+    {label:'📁 Nouvelle ressource',fn:"openUCM('ressource')"},
+    {label:'🧑‍💼 Nouveau lead',fn:"openUCM('lead')"}
+  ]:[
+    {label:'💬 Nouveau post (Forum)',fn:"openUCM('post')"}
+  ];
+  const btn=document.querySelector('.btn-action');
+  const rect=btn?btn.getBoundingClientRect():{bottom:60,right:300};
+  const menu=document.createElement('div');
+  menu.id='quickActionMenu';
+  menu.style.cssText='position:fixed;top:'+(rect.bottom+8)+'px;right:'+(window.innerWidth-rect.right)+'px;background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:8px;z-index:5000;min-width:230px;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+  menu.innerHTML=actions.map(a=>'<div style="padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--silver)" onmouseover="this.style.background=\'var(--surf3)\'" onmouseout="this.style.background=\'transparent\'" onclick="document.getElementById(\'quickActionMenu\').remove();'+a.fn+'">'+a.label+'</div>').join('');
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    document.addEventListener('click',function closeQuickMenu(e){
+      if(!menu.contains(e.target) && e.target!==btn){ menu.remove(); document.removeEventListener('click',closeQuickMenu); }
+    });
+  },10);
 }
 
 /* ══════════════════════════════════════
@@ -2928,13 +2985,14 @@ function submitAchatWhatsapp(){
   cmds.push(cmd); DS.set('boutique_commandes',cmds);
   closeUCM();
   showToast('Précommande enregistrée !','success');
+  addNotification('Nouvelle précommande','"'+p.titre+'" — '+nomComplet+' ('+tel+')','🛒');
   const msg=encodeURIComponent('🛒 Nouvelle précommande Dell Digital\n\nProduit: '+p.titre+'\nPrix: '+p.prix+' FCFA\nClient: '+nomComplet+'\nTéléphone: '+tel+(email?'\nEmail: '+email:'')+'\n\nMerci de me confirmer le paiement (T-Money/Flooz) pour finaliser.');
   window.open('https://wa.me/22898069111?text='+msg,'_blank');
 }
 function showAchatSuccess(txn){
   const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
   const c=cmds.find(x=>x.txnId===txn);
-  if(c){c.statut='paye';DS.set('boutique_commandes',cmds);}
+  if(c){c.statut='paye';DS.set('boutique_commandes',cmds);addNotification('Paiement reçu','"'+c.produitTitre+'" — '+c.montant+' FCFA payé par '+c.clientNom,'💳');}
   const prod=c?DS.get('boutique_produits',DD.boutique_produits).find(x=>x.id===c.produitId):null;
   document.getElementById('main').innerHTML=
     '<div class="empty-state"><div class="empty-state-ic">✅</div><div class="empty-state-title">Paiement réussi !</div>'
@@ -3224,7 +3282,7 @@ function submitUCM(isDraft){
       const titre=g('f_titre'),content=g('f_content');if(!titre||!content){showToast('Titre et contenu requis','error');return;}
       const av=currentUser.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
       const item={id:_ucmEditId||uid(),av,avc:'linear-gradient(135deg,var(--or),var(--blue))',auteur:currentUser.name,role:currentUser.role,time:'À l\'instant',tag:g('f_tag'),content,likes:0,replies:0};
-      if(_ucmEditId)DS.upd('forum_posts',_ucmEditId,item);else DS.push('forum_posts',item,DD.forum);
+      if(_ucmEditId)DS.upd('forum_posts',_ucmEditId,item);else{DS.push('forum_posts',item,DD.forum);addNotification('Nouveau post forum',currentUser.name+' a publié dans le forum','💬');}
       showToast(_ucmEditId?'Post modifié !':'Post publié !','success');
     }
     else if(t.includes('lead')){
