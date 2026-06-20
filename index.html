@@ -1437,6 +1437,14 @@ const DD={
   ],
   boutique_produits:[],
   boutique_commandes:[],
+  communication_posts:[
+    {id:'cp1',reseau:'FB+LK',date:'4 juin',titre:'Teaser — Et si votre IA travaillait pour vous ?',statut:'Publié',lien:''},
+    {id:'cp2',reseau:'FB',date:'6 juin',titre:"Post 2 — Combien d'heures perdez-vous ?",statut:'À publier',lien:''},
+    {id:'cp3',reseau:'FB+LK',date:'8 juin',titre:'Annonce officielle — Formation lancée !',statut:'À publier',lien:''},
+    {id:'cp4',reseau:'LK',date:'10 juin',titre:'Session Premium — Pour les Fonctionnaires',statut:'Planifié',lien:''},
+    {id:'cp5',reseau:'FB',date:'12 juin',titre:'Session Standard — Pour les Entrepreneurs',statut:'Planifié',lien:''},
+    {id:'cp6',reseau:'FB+LK',date:'17 juin',titre:'Urgence — Places limitées !',statut:'Planifié',lien:''}
+  ],
   modules:[
     {id:'mod1',ic:'🤖',titre:'Assistant IA Personnalise',desc:"Configurer Claude pour votre metier et vos taches.",niveau:'Debutant',duree:'2h'},
     {id:'mod2',ic:'⚙️',titre:'Automatisation RH',desc:"Recrutement, tri CV, grille salariale avec IA.",niveau:'Intermediaire',duree:'4h'},
@@ -1472,6 +1480,7 @@ const DD={
 const SUB_UCM={
   'accueil-annonces':'annonce','accueil-agenda':'event',
   'formations-sessions':'session','formations-live':'liveroom','formations-modules':'module','formations-ressources':'ressource',
+  'communication-posts':'commpost',
   'boutique-catalogue':'produit',
   'communaute-forum':'post','communaute-membres':'membre','communaute-evenements':'event',
   'projets-tableau':'projet','projets-annonces':'projet_anc','projets-publications':'projet_anc',
@@ -2428,21 +2437,54 @@ PAGES['partenaires-bafe'] = function() {
 
 /* ── COMMUNICATION ── */
 PAGES['communication-posts'] = function() {
-  var posts=[
-    {r:'FB+LK',d:'4 juin',t:'Teaser — Et si votre IA travaillait pour vous ?',s:'Publié',sc:'var(--green)'},
-    {r:'FB',d:'6 juin',t:'Post 2 — Combien d\'heures perdez-vous ?',s:'À publier',sc:'#FFB347'},
-    {r:'FB+LK',d:'8 juin',t:'Annonce officielle — Formation lancée !',s:'À publier',sc:'#FFB347'},
-    {r:'LK',d:'10 juin',t:'Session Premium — Pour les Fonctionnaires',s:'Planifié',sc:'var(--muted)'},
-    {r:'FB',d:'12 juin',t:'Session Standard — Pour les Entrepreneurs',s:'Planifié',sc:'var(--muted)'},
-    {r:'FB+LK',d:'17 juin',t:'Urgence — Places limitées !',s:'Planifié',sc:'var(--muted)'}
-  ];
-  let h=`<div class="ph anim-up"><h1>📱 <span class="o">Posts</span> Réseaux Sociaux</h1><p>Contenu planifié pour Facebook, LinkedIn et TikTok.</p></div>
-  <div class="fb"><button class="fc2 active">Tous</button><button class="fc2">📘 Facebook</button><button class="fc2">💼 LinkedIn</button><button class="fc2">⏳ À publier</button><button class="fc2">✅ Publiés</button></div>`;
-  posts.forEach(p=>{
-    h+=`<div class="pc"><div class="ph2"><div class="pav" style="background:linear-gradient(135deg,var(--or),var(--blue))">${p.r.includes('FB')?'F':'L'}</div><div class="pmeta"><h4>${p.t}</h4><span>${p.d} · ${p.r}</span></div><span style="margin-left:auto;font-size:10px;color:${p.sc};font-weight:600">${p.s}</span></div><div class="pact"><span class="pac">✏️ Modifier</span><span class="pac">📋 Copier</span><span class="pac" style="color:var(--green)" onclick="showToast('Marqué comme publié !','success')">✅ Marquer publié</span></div></div>`;
-  });
+  const isA=currentUser.role==='admin';
+  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📱 <span class="o">Posts</span> Réseaux Sociaux</h1><p>Contenu planifié pour Facebook, LinkedIn et TikTok.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'commpost\')">＋ Nouveau post</button>':'')+'</div>'
+    +'<div class="fb" id="commFilters"><button class="fc2 active" onclick="filterCommPosts(\'all\',event)">Tous</button><button class="fc2" onclick="filterCommPosts(\'FB\',event)">📘 Facebook</button><button class="fc2" onclick="filterCommPosts(\'LK\',event)">💼 LinkedIn</button><button class="fc2" onclick="filterCommPosts(\'apublier\',event)">⏳ À publier</button><button class="fc2" onclick="filterCommPosts(\'publie\',event)">✅ Publiés</button></div>';
+  h+='<div id="commPostsList">'+renderCommPosts('all')+'</div>';
   return h;
 };
+function renderCommPosts(filter){
+  const isA=currentUser.role==='admin';
+  const all=DS.get('communication_posts',DD.communication_posts);
+  let posts=all;
+  if(filter==='FB'||filter==='LK') posts=all.filter(p=>p.reseau.includes(filter));
+  else if(filter==='apublier') posts=all.filter(p=>p.statut==='À publier');
+  else if(filter==='publie') posts=all.filter(p=>p.statut==='Publié');
+  if(posts.length===0) return '<div class="empty-state"><div class="empty-state-ic">📱</div><div class="empty-state-title">Aucun post</div><div class="empty-state-desc">'+(filter==='all'?'Créez votre premier post.':'Aucun post dans cette catégorie.')+'</div></div>';
+  let h='';
+  posts.forEach(p=>{
+    const sc={'Publié':'var(--green)','À publier':'#FFB347','Planifié':'var(--muted)'}[p.statut]||'var(--muted)';
+    const lienHtml=p.lien?'<a href="'+p.lien+'" target="_blank" class="pac" style="color:var(--neon)">🔗 Voir la publication</a>':'';
+    const delHtml=isA?'<span class="pac" style="color:var(--red)" onclick="askConfirm(\'Supprimer ce post ?\',\'del_commpost\',\''+p.id+'\')">🗑️ Supprimer</span>':'';
+    const publierHtml=p.statut!=='Publié'?'<span class="pac" style="color:var(--green)" onclick="marquerPublie(\''+p.id+'\')">✅ Marquer publié</span>':'';
+    h+='<div class="pc"><div class="ph2"><div class="pav" style="background:linear-gradient(135deg,var(--or),var(--blue))">'+(p.reseau.includes('FB')?'F':'L')+'</div><div class="pmeta"><h4>'+p.titre+'</h4><span>'+p.date+' · '+p.reseau+'</span></div><span style="margin-left:auto;font-size:10px;color:'+sc+';font-weight:600">'+p.statut+'</span></div><div class="pact"><span class="pac" onclick="openUCM(\'commpost_edit\',\''+p.id+'\')">✏️ Modifier</span><span class="pac" onclick="copyCommPost(\''+p.id+'\')">📋 Copier</span>'+publierHtml+lienHtml+delHtml+'</div></div>';
+  });
+  return h;
+}
+function filterCommPosts(f,evt){
+  document.getElementById('commPostsList').innerHTML=renderCommPosts(f);
+  document.querySelectorAll('#commFilters .fc2').forEach(el=>el.classList.remove('active'));
+  if(evt&&evt.target) evt.target.classList.add('active');
+}
+function copyCommPost(id){
+  const p=DS.get('communication_posts',DD.communication_posts).find(x=>x.id===id);
+  if(!p){showToast('Post introuvable','error');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(p.titre).then(()=>showToast('Texte copié dans le presse-papier !','success')).catch(()=>showToast(p.titre,'info'));
+  } else showToast(p.titre,'info');
+}
+function marquerPublie(id){
+  const posts=DS.get('communication_posts',DD.communication_posts);
+  const p=posts.find(x=>x.id===id);
+  if(!p){showToast('Post introuvable','error');return;}
+  if(!p.lien){
+    const url=prompt('Lien vers la publication (optionnel, vous pouvez l\'ajouter plus tard via Modifier) :','');
+    if(url) p.lien=url.trim();
+  }
+  p.statut='Publié'; DS.set('communication_posts',posts);
+  showToast('Marqué comme publié !','success');
+  navigate('communication','posts');
+}
 
 PAGES['communication-planning'] = function() {
   return `<div class="ph anim-up"><h1>📅 <span class="o">Planning</span> Éditorial</h1><p>3 semaines de contenu planifié pour le lancement.</p></div>
@@ -2945,6 +2987,8 @@ const UCM_CFG={
   liveroom_edit:{title:'✏️ Modifier la Salle Live',submit:'Enregistrer'},
   produit:{title:'🛒 Nouveau Produit',submit:'Créer'},
   produit_edit:{title:'✏️ Modifier le Produit',submit:'Enregistrer'},
+  commpost:{title:'📱 Nouveau Post Réseaux Sociaux',submit:'Créer'},
+  commpost_edit:{title:'✏️ Modifier le Post',submit:'Enregistrer'},
   module:{title:'📚 Nouveau Module',submit:'Ajouter',hasAI:true},
   module_edit:{title:'✏️ Modifier le Module',submit:'Enregistrer'},
   ressource:{title:'📁 Nouvelle Ressource',submit:'Ajouter'},
@@ -3000,6 +3044,7 @@ function buildUCMBody(type,editId){
     if(t.includes('session')) return DS.get('sessions_list',DD.sessions).find(s=>s.id===id);
     if(t.includes('liveroom')) return DS.get('live_rooms',DD.live_rooms).find(r=>r.id===id);
     if(t.includes('produit')) return DS.get('boutique_produits',DD.boutique_produits).find(p=>p.id===id);
+    if(t.includes('commpost')) return DS.get('communication_posts',DD.communication_posts).find(p=>p.id===id);
     if(t.includes('module')) return DS.get('modules_cours',DD.modules).find(m=>m.id===id);
     if(t.includes('ressource')) return DS.get('ressources',DD.ressources).find(r=>r.id===id);
     if(t.includes('post')) return DS.get('forum_posts',DD.forum).find(p=>p.id===id);
@@ -3035,6 +3080,13 @@ function buildUCMBody(type,editId){
       +'<div class="ucm-field"><label>Prix (FCFA) *</label><input class="ucm-input" id="f_prix" type="number" placeholder="10000" value="'+(d.prix||'')+'"></div>'
       +'<div class="ucm-field"><label>Lien de livraison (Drive, etc.)</label><input class="ucm-input" id="f_lien" placeholder="https://drive.google.com/…" value="'+(d.lien||'')+'"></div>'
       +'<div style="font-size:11px;color:var(--muted);margin-top:4px">💡 Le lien de livraison sera envoyé manuellement au client après confirmation du paiement (automatisation prévue avec CinetPay).</div>';
+  }
+  if(type.includes('commpost')){
+    return '<div class="ucm-field"><label>Texte du post *</label><textarea class="ucm-input" id="f_titre" rows="3" placeholder="Le texte du post...">'+(d.titre||'')+'</textarea></div>'
+      +'<div class="ucm-row"><div class="ucm-field"><label>Réseau *</label><select class="ucm-input" id="f_reseau"><option value="FB" '+(d.reseau==='FB'?'selected':'')+'>📘 Facebook</option><option value="LK" '+(d.reseau==='LK'?'selected':'')+'>💼 LinkedIn</option><option value="FB+LK" '+(d.reseau==='FB+LK'||!d.reseau?'selected':'')+'>📘+💼 Facebook + LinkedIn</option></select></div><div class="ucm-field"><label>Date</label><input class="ucm-input" id="f_date" placeholder="Ex: 25 juin" value="'+(d.date||'')+'"></div></div>'
+      +'<div class="ucm-field"><label>Statut</label><select class="ucm-input" id="f_statut"><option value="Planifié" '+(d.statut==='Planifié'||!d.statut?'selected':'')+'>⚪ Planifié</option><option value="À publier" '+(d.statut==='À publier'?'selected':'')+'>⏳ À publier</option><option value="Publié" '+(d.statut==='Publié'?'selected':'')+'>✅ Publié</option></select></div>'
+      +'<div class="ucm-field"><label>Lien vers la publication</label><input class="ucm-input" id="f_lien" placeholder="https://facebook.com/…" value="'+(d.lien||'')+'"></div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:4px">💡 Ce lien pointe vers le post une fois publié manuellement sur Facebook/LinkedIn — ajoutez-le ici après publication.</div>';
   }
   if(type.includes('module')){
     return aiBlock(cfg)+'<div class="ucm-row" style="align-items:end"><div class="ucm-field" style="flex:0 0 80px"><label>Icône</label><input class="ucm-input" id="f_ic" style="text-align:center;font-size:22px" value="'+(d.ic||'📚')+'"></div><div class="ucm-field" style="flex:1"><label>Titre *</label><input class="ucm-input" id="f_titre" placeholder="Ex: Stratégie IA pour PME" value="'+(d.titre||'')+'"></div></div><div class="ucm-field"><label>Description *</label><textarea class="ucm-input" id="f_desc" placeholder="Décrivez le contenu du module…">'+(d.desc||'')+'</textarea></div><div class="ucm-row"><div class="ucm-field"><label>Niveau</label><select class="ucm-input" id="f_niveau"><option '+(d.niveau==='Debutant'?'selected':'')+'>Debutant</option><option '+(d.niveau==='Intermediaire'?'selected':'')+'>Intermediaire</option><option '+(d.niveau==='Avance'?'selected':'')+'>Avance</option></select></div><div class="ucm-field"><label>Durée</label><input class="ucm-input" id="f_duree" placeholder="Ex: 3h" value="'+(d.duree||'')+'"></div></div>';
@@ -3119,6 +3171,12 @@ function submitUCM(isDraft){
       if(_ucmEditId)DS.upd('boutique_produits',_ucmEditId,item);else DS.push('boutique_produits',item,DD.boutique_produits);
       showToast(_ucmEditId?'Produit modifié !':'Produit ajouté !','success');
     }
+    else if(t.includes('commpost')){
+      const titre=g('f_titre');if(!titre){showToast('Le texte du post est requis','error');return;}
+      const item={id:_ucmEditId||uid(),titre,reseau:g('f_reseau')||'FB',date:g('f_date')||'',statut:g('f_statut')||'Planifié',lien:g('f_lien')||''};
+      if(_ucmEditId)DS.upd('communication_posts',_ucmEditId,item);else DS.push('communication_posts',item,DD.communication_posts);
+      showToast(_ucmEditId?'Post modifié !':'Post créé !','success');
+    }
     else if(t.includes('module')){
       const titre=g('f_titre'),desc=g('f_desc');if(!titre||!desc){showToast('Titre et description requis','error');return;}
       const item={id:_ucmEditId||uid(),ic:g('f_ic')||'📚',titre,desc,niveau:g('f_niveau'),duree:g('f_duree')||'—'};
@@ -3201,6 +3259,7 @@ function executeConfirm(){
     del_session:(id)=>{DS.remove('sessions_list',id);showToast('Session supprimée','success');nav();},
     del_liveroom:(id)=>{DS.remove('live_rooms',id);showToast('Salle supprimée','success');nav();},
     del_produit:(id)=>{DS.remove('boutique_produits',id);showToast('Produit supprimé','success');nav();},
+    del_commpost:(id)=>{DS.remove('communication_posts',id);showToast('Post supprimé','success');nav();},
     del_module:(id)=>{DS.remove('modules_cours',id);showToast('Module supprimé','success');nav();},
     del_ressource:(id)=>{DS.remove('ressources',id);showToast('Ressource supprimée','success');nav();},
     del_post:(id)=>{DS.remove('forum_posts',id);showToast('Post supprimé','success');nav();},
