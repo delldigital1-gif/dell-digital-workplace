@@ -1231,6 +1231,17 @@ const ACCESS = {
 let currentUser = { role: 'visiteur', name: 'Visiteur', email: '' };
 const __roomParam=new URLSearchParams(location.search).get('room');
 if(__roomParam){ window.__pendingRoom=__roomParam; setTimeout(()=>{ try{ goWorkplace(); showToast('Connectez-vous pour rejoindre la session','info'); }catch(e){} },50); }
+const __paymentStatus=new URLSearchParams(location.search).get('payment');
+const __paymentTxn=new URLSearchParams(location.search).get('txn');
+if(__paymentStatus){
+  setTimeout(()=>{
+    try{ visitBoutique(); }catch(e){}
+    setTimeout(()=>{
+      if(__paymentStatus==='success'){ try{ showAchatSuccess(__paymentTxn); }catch(e){} }
+      else { try{ showToast('❌ Le paiement a échoué ou a été annulé.','error'); }catch(e){} }
+    },300);
+  },50);
+}
 
 /* ══════════════════════════════════════
    LANDING JS
@@ -2762,29 +2773,68 @@ function openAchatModal(produitId){
   const modal=document.getElementById('ucModal');
   if(!modal){showToast('Erreur modale','error');return;}
   document.getElementById('ucmTitle').textContent='🛒 Commander — '+p.titre;
-  document.getElementById('ucmFooter').innerHTML='<button class="btn-ucm-cancel" onclick="closeUCM()">Annuler</button><button class="btn-ucm-submit" onclick="submitAchat()">Valider la précommande</button>';
+  document.getElementById('ucmFooter').innerHTML='<button class="btn-ucm-cancel" onclick="closeUCM()">Annuler</button><button class="btn-ucm-submit" onclick="payerCinetpay()">💳 Payer en ligne</button>';
   document.getElementById('ucmBody').innerHTML=
-    '<div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--neon)">💳 Le paiement en ligne (T-Money, Flooz, Visa) arrive très prochainement. Pour le moment, votre commande est enregistrée et nous vous contactons sur WhatsApp pour finaliser le paiement.</div>'
-    +'<div class="ucm-field"><label>Produit</label><input class="ucm-input" value="'+p.titre+' — '+p.prix+' FCFA" disabled style="opacity:.7"></div>'
-    +'<div class="ucm-field"><label>Nom complet *</label><input class="ucm-input" id="f_achatNom" placeholder="Votre nom"></div>'
-    +'<div class="ucm-field"><label>Téléphone (WhatsApp) *</label><input class="ucm-input" id="f_achatTel" placeholder="+228 ..."></div>'
-    +'<div class="ucm-field"><label>Email (optionnel)</label><input class="ucm-input" id="f_achatEmail" placeholder="email@exemple.com"></div>';
+    '<div class="ucm-field"><label>Produit</label><input class="ucm-input" value="'+p.titre+' — '+p.prix+' FCFA" disabled style="opacity:.7"></div>'
+    +'<div class="ucm-row"><div class="ucm-field"><label>Prénom *</label><input class="ucm-input" id="f_achatPrenom" placeholder="Prénom"></div><div class="ucm-field"><label>Nom *</label><input class="ucm-input" id="f_achatNom" placeholder="Nom"></div></div>'
+    +'<div class="ucm-field"><label>Email *</label><input class="ucm-input" id="f_achatEmail" placeholder="email@exemple.com"></div>'
+    +'<div class="ucm-field"><label>Téléphone (WhatsApp)</label><input class="ucm-input" id="f_achatTel" placeholder="+228 ..."></div>'
+    +'<div id="achatPayStatus" style="font-size:11.5px;color:var(--muted);margin-top:8px;min-height:14px"></div>'
+    +'<div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--borderl);font-size:11.5px">Vous préférez payer plus tard ?<br><a href="javascript:void(0)" onclick="submitAchatWhatsapp()" style="color:var(--neon)">Précommander et être contacté sur WhatsApp →</a></div>';
   modal.classList.add('open');
   document.body.style.overflow='hidden';
 }
-function submitAchat(){
+async function payerCinetpay(){
+  const prenom=document.getElementById('f_achatPrenom').value.trim();
   const nom=document.getElementById('f_achatNom').value.trim();
+  const email=document.getElementById('f_achatEmail').value.trim();
+  const tel=document.getElementById('f_achatTel').value.trim();
+  const statusEl=document.getElementById('achatPayStatus');
+  if(!prenom||!nom||!email){statusEl.textContent='⚠️ Prénom, nom et email requis';statusEl.style.color='var(--red)';return;}
+  const p=window.__achatProduit;
+  statusEl.style.color='var(--muted)';
+  statusEl.textContent='⏳ Connexion sécurisée à CinetPay…';
+  try{
+    const r=await fetch('/api/cinetpay-init',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({amount:p.prix,designation:p.titre,client_email:email,client_first_name:prenom,client_last_name:nom,client_phone_number:tel})
+    });
+    const data=await r.json();
+    if(!r.ok||!data.payment_url){statusEl.style.color='var(--red)';statusEl.textContent='❌ '+(data.error||'Erreur lors de l\'initialisation du paiement');return;}
+    const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
+    cmds.push({id:'cmd_'+Date.now(),produitId:p.id,produitTitre:p.titre,montant:p.prix,clientNom:prenom+' '+nom,clientTel:tel,clientEmail:email,statut:'attente_paiement',txnId:data.merchant_transaction_id,date:new Date().toISOString()});
+    DS.set('boutique_commandes',cmds);
+    statusEl.style.color='var(--green)';
+    statusEl.textContent='✅ Redirection vers la page de paiement…';
+    window.location.href=data.payment_url;
+  }catch(e){statusEl.style.color='var(--red)';statusEl.textContent='❌ Erreur de connexion : '+e.message;}
+}
+function submitAchatWhatsapp(){
+  const prenom=(document.getElementById('f_achatPrenom')||{}).value||'';
+  const nom=(document.getElementById('f_achatNom')||{}).value||'';
   const tel=document.getElementById('f_achatTel').value.trim();
   const email=document.getElementById('f_achatEmail').value.trim();
-  if(!nom||!tel){showToast('Nom et téléphone requis','error');return;}
+  const nomComplet=(prenom+' '+nom).trim();
+  if(!nomComplet||!tel){showToast('Nom et téléphone requis','error');return;}
   const p=window.__achatProduit;
   const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
-  const cmd={id:'cmd_'+Date.now(),produitId:p.id,produitTitre:p.titre,montant:p.prix,clientNom:nom,clientTel:tel,clientEmail:email,statut:'attente_paiement',date:new Date().toISOString()};
+  const cmd={id:'cmd_'+Date.now(),produitId:p.id,produitTitre:p.titre,montant:p.prix,clientNom:nomComplet,clientTel:tel,clientEmail:email,statut:'attente_paiement',date:new Date().toISOString()};
   cmds.push(cmd); DS.set('boutique_commandes',cmds);
   closeUCM();
   showToast('Précommande enregistrée !','success');
-  const msg=encodeURIComponent('🛒 Nouvelle précommande Dell Digital\n\nProduit: '+p.titre+'\nPrix: '+p.prix+' FCFA\nClient: '+nom+'\nTéléphone: '+tel+(email?'\nEmail: '+email:'')+'\n\nMerci de me confirmer le paiement (T-Money/Flooz) pour finaliser.');
+  const msg=encodeURIComponent('🛒 Nouvelle précommande Dell Digital\n\nProduit: '+p.titre+'\nPrix: '+p.prix+' FCFA\nClient: '+nomComplet+'\nTéléphone: '+tel+(email?'\nEmail: '+email:'')+'\n\nMerci de me confirmer le paiement (T-Money/Flooz) pour finaliser.');
   window.open('https://wa.me/22898069111?text='+msg,'_blank');
+}
+function showAchatSuccess(txn){
+  const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
+  const c=cmds.find(x=>x.txnId===txn);
+  if(c){c.statut='paye';DS.set('boutique_commandes',cmds);}
+  const prod=c?DS.get('boutique_produits',DD.boutique_produits).find(x=>x.id===c.produitId):null;
+  document.getElementById('main').innerHTML=
+    '<div class="empty-state"><div class="empty-state-ic">✅</div><div class="empty-state-title">Paiement réussi !</div>'
+    +'<div class="empty-state-desc">Merci pour votre achat'+(c?' — '+c.produitTitre:'')+'.</div>'
+    +(prod&&prod.lien?'<a class="btn-p" style="margin-top:14px;display:inline-block;text-decoration:none" href="'+prod.lien+'" target="_blank">📥 Télécharger votre produit</a>':'<div style="margin-top:10px;font-size:12px;color:var(--muted)">Vous recevrez le lien de téléchargement très bientôt par WhatsApp/email.</div>')
+    +'<div style="margin-top:18px"><button class="btn-anc" onclick="navigate(\'boutique\',\'catalogue\')">← Retour à la boutique</button></div></div>';
 }
 
 PAGES['boutique-commandes']=function(){
