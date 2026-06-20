@@ -1741,24 +1741,48 @@ PAGES['formations-modules']=function(){
 
 PAGES['formations-ressources']=function(){
   const isA=currentUser.role==='admin';
-  const res=DS.get('ressources',DD.ressources);
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📁 <span class="o">Ressources</span></h1><p>Bibliothèque des supports et documents.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'ressource\')">＋ Ajouter</button>':'')+'</div><div class="fb"><button class="fc2 active">Tous</button><button class="fc2">📄 Documents</button><button class="fc2">🖼️ Visuels</button><button class="fc2">🤝 Partenaires</button></div>';
-  if(res.length===0){h+='<div class="empty-state"><div class="empty-state-ic">📁</div><div class="empty-state-title">Aucune ressource</div><div class="empty-state-desc">Ajoutez des supports et documents.</div></div>';}
-  else res.forEach(r=>{const acts=isA?'<div style="display:flex;gap:5px;margin-left:6px"><button class="btn-sm btn-sm-edit" onclick="openUCM(\'ressource_edit\',\''+r.id+'\')">✏️</button><button class="btn-sm btn-sm-del" onclick="askConfirm(\'Supprimer ?\',\'del_ressource\',\''+r.id+'\')">🗑️</button></div>':'';h+='<div class="rcard"><div class="ric" style="background:'+r.col+'">'+r.ic+'</div><div style="flex:1"><div class="rtit">'+r.titre+'</div><div class="rdet">'+r.desc+' · <span style="color:var(--or)">'+r.cat+'</span></div></div><button class="rdl" onclick="showToast(\'Téléchargement…\',\'info\')">⬇️</button>'+acts+'</div>';});
+  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📁 <span class="o">Ressources</span></h1><p>Bibliothèque des supports et documents.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'ressource\')">＋ Ajouter</button>':'')+'</div><div class="fb" id="resFilters"><button class="fc2 active" onclick="filterRessources(\'all\',event)">Tous</button><button class="fc2" onclick="filterRessources(\'Document\',event)">📄 Documents</button><button class="fc2" onclick="filterRessources(\'Visuel\',event)">🖼️ Visuels</button><button class="fc2" onclick="filterRessources(\'Partenaire\',event)">🤝 Partenaires</button></div>';
+  h+='<div id="resList">'+renderRessources('all')+'</div>';
   return h;
+}
+function renderRessources(filter){
+  const isA=currentUser.role==='admin';
+  const all=DS.get('ressources',DD.ressources);
+  const res=filter==='all'?all:all.filter(r=>r.cat===filter);
+  if(res.length===0){return '<div class="empty-state"><div class="empty-state-ic">📁</div><div class="empty-state-title">Aucune ressource</div><div class="empty-state-desc">'+(filter==='all'?'Ajoutez des supports et documents.':'Aucune ressource dans cette catégorie.')+'</div></div>';}
+  let h='';
+  res.forEach(r=>{const acts=isA?'<div style="display:flex;gap:5px;margin-left:6px"><button class="btn-sm btn-sm-edit" onclick="openUCM(\'ressource_edit\',\''+r.id+'\')">✏️</button><button class="btn-sm btn-sm-del" onclick="askConfirm(\'Supprimer ?\',\'del_ressource\',\''+r.id+'\')">🗑️</button></div>':'';h+='<div class="rcard"><div class="ric" style="background:'+r.col+'">'+r.ic+'</div><div style="flex:1"><div class="rtit">'+r.titre+'</div><div class="rdet">'+r.desc+' · <span style="color:var(--or)">'+r.cat+'</span></div></div><button class="rdl" onclick="showToast(\'Téléchargement…\',\'info\')">⬇️</button>'+acts+'</div>';});
+  return h;
+}
+function filterRessources(cat,evt){
+  document.getElementById('resList').innerHTML=renderRessources(cat);
+  document.querySelectorAll('#resFilters .fc2').forEach(el=>el.classList.remove('active'));
+  if(evt&&evt.target) evt.target.classList.add('active');
 }
 
 /* ── COMMUNAUTÉ ── */
 PAGES['communaute-forum']=function(){
   const isA=currentUser.role==='admin';
-  const posts=DS.get('forum_posts',DD.forum);
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>💬 <span class="o">Forum</span></h1><p>Espace de discussion pour la communauté.</p></div><button class="btn-add-main" style="background:linear-gradient(135deg,var(--blue),var(--neon))" onclick="openUCM(\'post\')">＋ Nouveau post</button></div><div class="fb"><button class="fc2 active">Tous</button><button class="fc2">📣 Annonces</button><button class="fc2">🎓 Formation</button><button class="fc2">💡 Astuces IA</button></div>';
-  if(posts.length===0){h+='<div class="empty-state"><div class="empty-state-ic">💬</div><div class="empty-state-title">Aucun post</div><div class="empty-state-desc">Soyez le premier à poster !</div></div>';}
-  else posts.forEach(p=>{
+  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>💬 <span class="o">Forum</span></h1><p>Espace de discussion pour la communauté.</p></div><button class="btn-add-main" style="background:linear-gradient(135deg,var(--blue),var(--neon))" onclick="openUCM(\'post\')">＋ Nouveau post</button></div><div class="fb" id="forumFilters"><button class="fc2 active" onclick="filterForum(\'all\',event)">Tous</button><button class="fc2" onclick="filterForum(\'Annonce\',event)">📣 Annonces</button><button class="fc2" onclick="filterForum(\'Formation\',event)">🎓 Formation</button><button class="fc2" onclick="filterForum(\'Astuces IA\',event)">💡 Astuces IA</button></div>';
+  h+='<div id="forumPosts">'+renderForumPosts('all')+'</div>';
+  return h;
+}
+function renderForumPosts(filter){
+  const isA=currentUser.role==='admin';
+  const all=DS.get('forum_posts',DD.forum);
+  const posts=filter==='all'?all:all.filter(p=>p.tag===filter);
+  if(posts.length===0){return '<div class="empty-state"><div class="empty-state-ic">💬</div><div class="empty-state-title">Aucun post</div><div class="empty-state-desc">'+(filter==='all'?'Soyez le premier à poster !':'Aucun post dans cette catégorie pour le moment.')+'</div></div>';}
+  let h='';
+  posts.forEach(p=>{
     const del=isA?'<span class="fpac" style="color:var(--neon)" onclick="openUCM(\'post_edit\',\''+p.id+'\')">✏️</span><span class="fpac" style="color:var(--red)" onclick="askConfirm(\'Supprimer ce post ?\',\'del_post\',\''+p.id+'\')">🗑️</span>':'';
     h+='<div class="fpost"><div class="fphead"><div class="fpav" style="background:'+p.avc+'">'+p.av+'</div><div class="fpmeta"><h4>'+p.auteur+'</h4><span>'+p.role+' · '+p.time+'</span></div><span class="fptag" style="margin-left:auto">'+p.tag+'</span></div><div class="fpcontent">'+p.content+'</div><div class="fpact"><span class="fpac" onclick="cmsExec(\'like\',\''+p.id+'\')">❤️ '+p.likes+'</span><span class="fpac">💬 '+p.replies+'</span>'+del+'</div></div>';
   });
   return h;
+}
+function filterForum(tag,evt){
+  document.getElementById('forumPosts').innerHTML=renderForumPosts(tag);
+  document.querySelectorAll('#forumFilters .fc2').forEach(el=>el.classList.remove('active'));
+  if(evt&&evt.target) evt.target.classList.add('active');
 }
 
 PAGES['communaute-membres']=function(){
