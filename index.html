@@ -1924,11 +1924,11 @@ PAGES['clients-prospects'] = function() {
 const DEVIS_SERVICES = [
   {id:'transfo',name:'Transformation 360°',desc:'Audit complet + plan numérique',price:150000,unit:'mission'},
   {id:'audit',name:'Audit Digital',desc:'Diagnostic présence en ligne',price:75000,unit:'mission'},
-  {id:'whatsapp',name:'Automatisation WhatsApp',desc:'Chatbot + workflow n8n',price:120000,unit:'projet'},
-  {id:'crm-leads',name:'CRM & Leads Automatisés',desc:'Formulaire → CRM + relances automatiques',price:130000,unit:'projet'},
-  {id:'essaim-ia',name:'Automatisation Contenu IA',desc:"Agents IA pour réseaux sociaux (façon L'Essaim IA)",price:200000,unit:'projet'},
-  {id:'chatbot-ia',name:'Assistant IA Sur-Mesure',desc:'Chatbot IA branché sur le site/produits du client',price:280000,unit:'projet'},
-  {id:'paiement-ligne',name:'Paiement en Ligne',desc:'Intégration T-Money, Flooz, Visa (CinetPay)',price:100000,unit:'projet'},
+  {id:'whatsapp',name:'Automatisation WhatsApp',desc:'Chatbot + workflow n8n',price:120000,unit:'projet',range:'120 000 – 220 000 FCFA'},
+  {id:'crm-leads',name:'CRM & Leads Automatisés',desc:'Formulaire → CRM + relances automatiques',price:130000,unit:'projet',range:'130 000 – 230 000 FCFA'},
+  {id:'essaim-ia',name:'Automatisation Contenu IA',desc:"Agents IA pour réseaux sociaux (façon L'Essaim IA)",price:200000,unit:'projet',range:'200 000 – 350 000 FCFA'},
+  {id:'chatbot-ia',name:'Assistant IA Sur-Mesure',desc:'Chatbot IA branché sur le site/produits du client',price:280000,unit:'projet',range:'280 000 – 450 000 FCFA'},
+  {id:'paiement-ligne',name:'Paiement en Ligne',desc:'Intégration T-Money, Flooz, Visa (CinetPay)',price:100000,unit:'projet',range:'100 000 – 180 000 FCFA'},
   {id:'formation-ia',name:'Formation IA',desc:'Session 2 jours équipe',price:250000,unit:'équipe'},
   {id:'site-vitrine',name:'Site Vitrine No-Code',desc:'3-5 pages responsive',price:175000,unit:'livraison'},
   {id:'ecommerce',name:'E-commerce',desc:'Boutique en ligne complète',price:400000,unit:'livraison'},
@@ -1945,10 +1945,13 @@ PAGES['devis-generateur'] = function() {
   devisChecked = new Set();
   let servicesHtml = '';
   DEVIS_SERVICES.forEach(s=>{
+    const priceHtml = s.range
+      ? `${s.range}<small>/ ${s.unit} · après audit</small>`
+      : `${s.price.toLocaleString()} FCFA<small>/ ${s.unit}</small>`;
     servicesHtml+=`<div class="devis-service-item" id="dsi-${s.id}" onclick="toggleDevisService('${s.id}')">
       <div class="dsi-check" id="chk-${s.id}"></div>
       <div class="dsi-info"><div class="dsi-name">${s.name}</div><div class="dsi-desc">${s.desc}</div></div>
-      <div class="dsi-price">${s.price.toLocaleString()} FCFA<small>/ ${s.unit}</small></div>
+      <div class="dsi-price">${priceHtml}</div>
     </div>`;
   });
   return `<div class="ph anim-up"><h1>📄 <span class="o">Générateur</span> de Devis</h1><p>Sélectionnez les services et calculez le montant en temps réel.</p></div>
@@ -2029,15 +2032,19 @@ function updateDevisTotal() {
     linesEl.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px">Sélectionnez des services pour voir l\'aperçu</div>';
     totalEl.textContent='0 FCFA'; return;
   }
-  let html='', total=0;
+  let html='', total=0, hasRange=false;
   devisChecked.forEach(sid=>{
     const s=DEVIS_SERVICES.find(x=>x.id===sid);
     if(s){
       const amt=s.price*devisMultiplier;
       total+=amt;
-      html+=`<div class="dli"><span class="dli-name">${s.name}${devisMultiplier>1?` ×${devisMultiplier}`:''}</span><span class="dli-price">${amt.toLocaleString()} F</span></div>`;
+      if(s.range) hasRange=true;
+      html+=`<div class="dli"><span class="dli-name">${s.name}${devisMultiplier>1?` ×${devisMultiplier}`:''}${s.range?' <small style="color:var(--muted)">(estimation)</small>':''}</span><span class="dli-price">${amt.toLocaleString()} F</span></div>`;
     }
   });
+  if(hasRange){
+    html+=`<div style="font-size:10.5px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--borderl)">🔍 Montant basé sur le tarif de départ — confirmé après audit</div>`;
+  }
   if(devisDiscount>0){
     const disc=Math.round(total*devisDiscount/100);
     html+=`<div class="dli"><span class="dli-name" style="color:var(--green)">Remise ${devisDiscount}%</span><span class="dli-price" style="color:var(--green)">-${disc.toLocaleString()} F</span></div>`;
