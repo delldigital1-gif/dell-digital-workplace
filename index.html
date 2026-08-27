@@ -1496,7 +1496,8 @@ const MENU = [
     ]},
     { id:'devis', ic:'📄', lb:'Devis', subs:[
       {id:'generateur',lb:'Générateur'},
-      {id:'catalogue',lb:'Catalogue'}
+      {id:'catalogue',lb:'Catalogue'},
+      {id:'historique',lb:'Historique',admin:true}
     ]},
     { id:'certifications', ic:'🏆', lb:'Certifications', subs:[
       {id:'liste',lb:'Liste certifiés'},
@@ -2164,6 +2165,17 @@ function updateDevisTotal() {
   taxEl.textContent=`HT · TVA 18% : ${tva.toLocaleString()} FCFA`;
 }
 
+function saveDevisRecord(total,canal){
+  const client=document.getElementById('devisClientName')?.value||'Client';
+  const email=document.getElementById('devisClientEmail')?.value||null;
+  const note=document.getElementById('devisNote')?.value||null;
+  const services=[...devisChecked].map(sid=>{const s=DEVIS_SERVICES.find(x=>x.id===sid);return s?{id:s.id,name:s.name,price:s.price}:null;}).filter(Boolean);
+  fetch(WP_SUPABASE_URL+'/functions/v1/wp-submit-devis',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({client_nom:client,client_email:email,services,multiplicateur:devisMultiplier,remise:devisDiscount,total,note,canal})
+  }).catch(()=>{});
+}
+
 function exportDevis() {
   const client=document.getElementById('devisClientName')?.value||'Client';
   const note=document.getElementById('devisNote')?.value||'';
@@ -2175,6 +2187,7 @@ function exportDevis() {
   if(devisDiscount>0){const disc=Math.round(total*devisDiscount/100);total-=disc;lines.push(`• Remise ${devisDiscount}% : -${disc.toLocaleString()} FCFA`);}
   const devisText=`DEVIS DELL DIGITAL\n═══════════════════\nClient : ${client}\nDate : ${new Date().toLocaleDateString('fr-FR')}\n\nSERVICES :\n${lines.join('\n')}\n\nTOTAL HT : ${total.toLocaleString()} FCFA\nTVA 18% : ${Math.round(total*0.18).toLocaleString()} FCFA\nTOTAL TTC : ${Math.round(total*1.18).toLocaleString()} FCFA\n\n${note?'Note : '+note+'\n\n':''}Validité : 30 jours\nDell Digital — +228 98 06 91 11\ndelldigital1@gmail.com`;
   navigator.clipboard.writeText(devisText).then(()=>showToast('Devis copié dans le presse-papiers !','success')).catch(()=>showToast('Devis généré','info'));
+  if(devisChecked.size>0) saveDevisRecord(total,'copie');
 }
 
 function sendDevisWA() {
@@ -2184,6 +2197,31 @@ function sendDevisWA() {
   const client=document.getElementById('devisClientName')?.value||'';
   const msg=encodeURIComponent(`Bonjour ${client},\n\nVoici votre estimation Dell Digital :\nTotal : ${total.toLocaleString()} FCFA\n\nContactez-nous pour finaliser votre devis :\ndelldigital1@gmail.com`);
   window.open(`https://wa.me/22898069111?text=${msg}`,'_blank');
+  if(devisChecked.size>0) saveDevisRecord(total,'whatsapp');
+}
+
+PAGES['devis-historique'] = function(){
+  if(currentUser.role!=='admin') return '<div class="lock-overlay"><div class="lock-icon">🛡️</div><div class="lock-title">Admin uniquement</div><div class="lock-desc">L\'historique des devis générés est réservé aux administrateurs.</div></div>';
+  loadDevisAsync();
+  return '<div class="ph anim-up"><h1>🧾 <span class="o">Historique</span> des devis</h1><p>Devis générés par vous et vos membres, copiés ou envoyés par WhatsApp.</p></div><div id="devisHistWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+async function loadDevisAsync(){
+  const d=await wpAdminGet();
+  const devis=d.devis||[];
+  const wrap=document.getElementById('devisHistWrap');
+  if(!wrap) return;
+  if(devis.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-state-ic">🧾</div><div class="empty-state-title">Aucun devis généré</div><div class="empty-state-desc">Les devis apparaîtront ici dès qu\'un devis sera copié ou envoyé.</div></div>';return;}
+  let h='<div style="display:flex;flex-direction:column;gap:10px">';
+  devis.forEach(v=>{
+    const dt=new Date(v.created_at); const dStr=isNaN(dt)?'—':dt.toLocaleDateString('fr-FR')+' à '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const services=(v.services||[]).map(s=>s.name).join(', ')||'—';
+    const canalLbl=v.canal==='whatsapp'?'📱 WhatsApp':'📋 Copié';
+    h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'
+      +'<div><div style="font-weight:700;font-size:13px">'+v.client_nom+' — '+Number(v.total).toLocaleString()+' FCFA</div><div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+services+(v.multiplicateur>1?' · ×'+v.multiplicateur:'')+(v.remise>0?' · -'+v.remise+'%':'')+'</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px">📅 '+dStr+'</div></div>'
+      +'<div><span class="sbadge new">'+canalLbl+'</span></div></div>';
+  });
+  h+='</div>';
+  wrap.innerHTML=h;
 }
 
 PAGES['devis-catalogue'] = function() {
@@ -2311,24 +2349,6 @@ PAGES['analyses-performance'] = function() {
 /* ══════════════════════════════════════════
    MODULE 6 — PIPELINE KANBAN
 ══════════════════════════════════════════ */
-let kanbanData = {
-  prospect: [
-    {id:1,title:'PME Agroalimentaire',company:'Entreprise Lomé',amount:'150 000 F',priority:'high'},
-    {id:2,title:'Formation équipe RH',company:'Admin. Publique',amount:'250 000 F',priority:'mid'}
-  ],
-  contacte: [
-    {id:3,title:'Site e-commerce mode',company:'Boutique Ama Mode',amount:'400 000 F',priority:'high'}
-  ],
-  proposition: [
-    {id:4,title:'Automatisation n8n',company:'StartupTech Lomé',amount:'180 000 F',priority:'mid'},
-    {id:5,title:'Co-formation IA',company:'Bafe & Associés',amount:'Partage %',priority:'low'}
-  ],
-  gagne: [
-    {id:6,title:'Formation IA 3 sessions',company:'Général',amount:'1 500 000 F',priority:'low'}
-  ],
-  perdu: []
-};
-
 const KANBAN_COLS = [
   {id:'prospect',title:'Prospect',color:'var(--neon)'},
   {id:'contacte',title:'Contacté',color:'var(--or)'},
@@ -2337,42 +2357,38 @@ const KANBAN_COLS = [
 ];
 
 PAGES['pipeline-kanban']=function(){
-  const isA=currentUser.role==='admin';
+  loadDealsAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>📈 <span class="o">Pipeline</span></h1><p>Suivi Kanban des opportunités.</p></div><button class="btn-add-main" onclick="openUCM(\'deal\')">＋ Nouveau deal</button></div><div id="pipelineWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+async function loadDealsAsync(){
   const COLS=[{id:'prospect',title:'🔍 Prospect',color:'var(--neon)'},{id:'contacte',title:'📞 Contacté',color:'var(--or)'},{id:'proposition',title:'📄 Proposition',color:'var(--admin)'},{id:'gagne',title:'✅ Gagné',color:'var(--green)'}];
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📈 <span class="o">Pipeline</span></h1><p>Suivi Kanban des opportunités.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'deal\')">＋ Nouveau deal</button>':'')+'</div><div class="kanban-board">';
+  const d=await wpAdminGet();
+  const deals=d.deals||[];
+  window.__wpDealsCache=deals;
+  const wrap=document.getElementById('pipelineWrap');
+  if(!wrap) return;
+  let h='<div class="kanban-board">';
   COLS.forEach(col=>{
-    const cards=kanbanData[col.id]||[];
+    const cards=deals.filter(c=>c.column_id===col.id);
     h+='<div class="kanban-col"><div class="kanban-col-header"><div class="kanban-col-title" style="color:'+col.color+'">'+col.title+'</div><div class="kanban-col-count">'+cards.length+'</div></div>';
-    cards.forEach(c=>{const pc={high:'var(--red)',mid:'var(--yellow)',low:'var(--green)'}[c.priority]||'var(--muted)';const acts=isA?'<div style="display:flex;gap:5px;margin-top:8px"><button class="btn-anc btn-anc-edit" onclick="openUCM(\'deal_edit\',\''+c.id+'|'+col.id+'\')">✏️</button><button class="btn-anc btn-anc-del" onclick="askConfirm(\'Supprimer ce deal ?\',\'del_deal\',\''+c.id+'\',\''+col.id+'\')">🗑️</button></div>':'';h+='<div class="kanban-card" draggable="true" ondragstart="dragCard('+c.id+')" ondragover="event.preventDefault()" ondrop="dropCard(event,\''+col.id+'\')" style="position:relative"><div style="width:8px;height:8px;border-radius:50%;background:'+pc+';position:absolute;top:10px;right:10px"></div><div class="kc-title">'+c.title+'</div><div class="kc-company">'+c.company+'</div><div class="kc-footer"><div class="kc-amount">'+c.amount+'</div><div class="kc-avatar">'+(c.company?c.company[0]:'?')+'</div></div>'+acts+'</div>';});
+    cards.forEach(c=>{const pc={high:'var(--red)',mid:'var(--yellow)',low:'var(--green)'}[c.priority]||'var(--muted)';const acts='<div style="display:flex;gap:5px;margin-top:8px"><button class="btn-anc btn-anc-edit" onclick="openUCM(\'deal_edit\',\''+c.id+'\')">✏️</button><button class="btn-anc btn-anc-del" onclick="askConfirm(\'Supprimer ce deal ?\',\'del_deal\',\''+c.id+'\')">🗑️</button></div>';h+='<div class="kanban-card" draggable="true" ondragstart="dragCard(\''+c.id+'\')" ondragover="event.preventDefault()" ondrop="dropCard(event,\''+col.id+'\')" style="position:relative"><div style="width:8px;height:8px;border-radius:50%;background:'+pc+';position:absolute;top:10px;right:10px"></div><div class="kc-title">'+c.title+'</div><div class="kc-company">'+c.company+'</div><div class="kc-footer"><div class="kc-amount">'+c.amount+'</div><div class="kc-avatar">'+(c.company?c.company[0]:'?')+'</div></div>'+acts+'</div>';});
     h+='<button class="add-card-btn" onclick="openUCM(\'deal\')">＋ Ajouter un deal</button></div>';
   });
-  h+='</div>';return h;
+  h+='</div>';
+  wrap.innerHTML=h;
 }
 
 let draggedCardId = null;
 function dragCard(id){ draggedCardId=id; }
-function dropCard(e,colId){
+async function dropCard(e,colId){
   e.preventDefault();
   if(!draggedCardId) return;
-  let card=null, fromCol=null;
-  Object.keys(kanbanData).forEach(col=>{
-    const idx=kanbanData[col].findIndex(c=>c.id===draggedCardId);
-    if(idx>-1){card=kanbanData[col][idx];kanbanData[col].splice(idx,1);fromCol=col;}
-  });
-  if(card){kanbanData[colId].push(card);showToast(`Déplacé vers "${KANBAN_COLS.find(c=>c.id===colId)?.title||colId}"`, 'success');}
-  draggedCardId=null;
+  const id=draggedCardId; draggedCardId=null;
+  try{
+    await wpAdminPost({action:'upsert_deal',id,patch:{column_id:colId}});
+    showToast(`Déplacé vers "${KANBAN_COLS.find(c=>c.id===colId)?.title||colId}"`, 'success');
+  }catch(err){showToast('Erreur : '+err.message,'error');}
   navigate('pipeline','kanban');
-}
-
-function addKanbanCard(colId) {
-  const title=prompt('Nom de l\'opportunité :');
-  if(!title) return;
-  const company=prompt('Entreprise :')||'Non défini';
-  const amount=prompt('Montant estimé (FCFA) :')||'À définir';
-  const id=Date.now();
-  kanbanData[colId].push({id,title,company,amount:amount+' FCFA',priority:'mid'});
-  navigate('pipeline','kanban');
-  showToast('Deal ajouté !','success');
 }
 
 /* ══════════════════════════════════════════
@@ -3353,8 +3369,8 @@ function buildUCMBody(type,editId){
     return '<div class="ucm-row"><div class="ucm-field"><label>Nom *</label><input class="ucm-input" id="f_nom" placeholder="Nom complet" value="'+(d.nom||'')+'"></div><div class="ucm-field"><label>Téléphone *</label><input class="ucm-input" id="f_tel" placeholder="+228 90 00 00 00" value="'+(d.tel||'')+'"></div></div><div class="ucm-field"><label>Email</label><input class="ucm-input" id="f_email" type="email" placeholder="email@exemple.tg" value="'+(d.email||'')+'"></div><div class="ucm-row"><div class="ucm-field"><label>Service</label><select class="ucm-input" id="f_service"><option>Formation IA</option><option>Site vitrine</option><option>E-commerce</option><option>Automatisation WhatsApp</option><option>Consulting IT</option><option>Audit digital</option><option>Autre</option></select></div><div class="ucm-field"><label>Statut</label><select class="ucm-input" id="f_status"><option value="new" '+(d.status==='new'?'selected':'')+'>🆕 Nouveau</option><option value="hot" '+(d.status==='hot'?'selected':'')+'>🔥 Chaud</option><option value="warm" '+(d.status==='warm'?'selected':'')+'>Tiède</option><option value="done" '+(d.status==='done'?'selected':'')+'>✅ Traité</option></select></div></div>';
   }
   if(type.includes('deal')){
-    const cId=editId?editId.split('|')[1]:'prospect';
-    const crd=editId?(()=>{const cID=editId.split('|')[0];let c={};Object.keys(kanbanData).forEach(k=>{const f=kanbanData[k].find(x=>String(x.id)===String(cID));if(f)c=f;});return c;})():{};
+    const crd=editId?((window.__wpDealsCache||[]).find(x=>String(x.id)===String(editId))||{}):{};
+    const cId=crd.column_id||'prospect';
     return '<div class="ucm-row"><div class="ucm-field"><label>Opportunité *</label><input class="ucm-input" id="f_title" placeholder="Ex: Formation équipe RH" value="'+(crd.title||'')+'"></div><div class="ucm-field"><label>Entreprise *</label><input class="ucm-input" id="f_company" placeholder="Nom de l\'entreprise" value="'+(crd.company||'')+'"></div></div><div class="ucm-row"><div class="ucm-field"><label>Montant (FCFA)</label><input class="ucm-input" id="f_amount" placeholder="250 000" value="'+(crd.amount?crd.amount.replace(' FCFA',''):'')+'"></div><div class="ucm-field"><label>Priorité</label><select class="ucm-input" id="f_priority"><option value="high" '+(crd.priority==='high'?'selected':'')+'>🔴 Haute</option><option value="mid" '+(crd.priority==='mid'||!crd.priority?'selected':'')+'>🟡 Moyenne</option><option value="low" '+(crd.priority==='low'?'selected':'')+'>🟢 Basse</option></select></div></div><div class="ucm-field"><label>Étape</label><select class="ucm-input" id="f_col"><option value="prospect" '+(cId==='prospect'?'selected':'')+'>Prospect</option><option value="contacte" '+(cId==='contacte'?'selected':'')+'>Contacté</option><option value="proposition" '+(cId==='proposition'?'selected':'')+'>Proposition</option><option value="gagne" '+(cId==='gagne'?'selected':'')+'>Gagné ✓</option></select></div>';
   }
   if(type.includes('projet_anc')||type.includes('proj_anc')){
@@ -3460,17 +3476,11 @@ async function submitUCM(isDraft){
     }
     else if(t.includes('deal')){
       const title=g('f_title'),company=g('f_company');if(!title||!company){showToast('Opportunité et entreprise requis','error');return;}
-      const newCol=g('f_col')||'prospect';
-      if(_ucmEditId){
-        const cID=_ucmEditId.split('|')[0];let card=null;
-        Object.keys(kanbanData).forEach(k=>{const idx=kanbanData[k].findIndex(x=>String(x.id)===String(cID));if(idx>-1){card={...kanbanData[k][idx]};kanbanData[k].splice(idx,1);}});
-        if(card){card.title=title;card.company=company;card.amount=(g('f_amount')||'À définir')+' FCFA';card.priority=g('f_priority')||'mid';if(!kanbanData[newCol])kanbanData[newCol]=[];kanbanData[newCol].push(card);}
-        showToast('Deal modifié !','success');
-      } else {
-        if(!kanbanData[newCol])kanbanData[newCol]=[];
-        kanbanData[newCol].push({id:Date.now(),title,company,amount:(g('f_amount')||'À définir')+' FCFA',priority:g('f_priority')||'mid'});
-        showToast('Deal ajouté !','success');
-      }
+      const patch={title,company,amount:(g('f_amount')||'À définir')+' FCFA',priority:g('f_priority')||'mid',column_id:g('f_col')||'prospect'};
+      try{
+        await wpAdminPost({action:'upsert_deal',id:_ucmEditId||null,patch});
+        showToast(_ucmEditId?'Deal modifié !':'Deal ajouté !','success');
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('proj_anc')||t.includes('projet_anc')){
       const titre=g('f_titre'),contenu=g('f_contenu');if(!titre||!contenu){showToast('Titre et contenu requis','error');return;}
@@ -3518,7 +3528,7 @@ function executeConfirm(){
     del_ressource:(id)=>{DS.remove('ressources',id);showToast('Ressource supprimée','success');nav();},
     del_post:(id)=>{DS.remove('forum_posts',id);showToast('Post supprimé','success');nav();},
     del_lead:async(id)=>{try{await wpAdminPost({action:'delete_lead',id});showToast('Lead supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
-    del_deal:(id,colId)=>{if(colId&&kanbanData[colId])kanbanData[colId]=kanbanData[colId].filter(c=>String(c.id)!==String(id));else Object.keys(kanbanData).forEach(k=>{kanbanData[k]=kanbanData[k].filter(c=>String(c.id)!==String(id));});showToast('Deal supprimé','success');nav();},
+    del_deal:async(id)=>{try{await wpAdminPost({action:'delete_deal',id});showToast('Deal supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_projet:(id)=>{DS.remove('projets',id);showToast('Projet supprimé','success');nav();},
     del_proj_anc:(id)=>{DS.remove('projets_anc',id);showToast('Annonce supprimée','success');nav();}
   };
