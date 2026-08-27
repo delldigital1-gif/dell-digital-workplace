@@ -1317,6 +1317,36 @@ async function wpAdminPost(body){
   if(!r.ok) throw new Error(d.error||'Erreur serveur');
   return d;
 }
+async function wpAdminCrud(entity,action,id,patch){
+  const{data:{session}}=await wpsb.auth.getSession();
+  if(!session) throw new Error('Session admin expirée, reconnectez-vous.');
+  const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-admin-crud',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({entity,action,id,patch})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||'Erreur serveur');
+  return d;
+}
+async function wpPublicGet(){
+  const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-public-data');
+  if(!r.ok) return {forum_posts:[],membres:[],projets:[],projets_anc:[]};
+  return r.json();
+}
+async function wpSubmitContent(payload){
+  const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-submit-content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||'Erreur serveur');
+  return d;
+}
+function relTime(dateStr){
+  const diffMs=Date.now()-new Date(dateStr).getTime();
+  const min=Math.floor(diffMs/60000);
+  if(min<1) return "À l'instant";
+  if(min<60) return 'Il y a '+min+' min';
+  const h=Math.floor(min/60);
+  if(h<24) return 'Il y a '+h+'h';
+  const j=Math.floor(h/24);
+  if(j<30) return 'Il y a '+j+'j';
+  return new Date(dateStr).toLocaleDateString('fr-FR');
+}
 
 const ACCESS = {
   admin: ['accueil','formations','communaute','projets','boutique','clients','services','partenaires','communication','analyses','admin','devis','pipeline','certifications','contact'],
@@ -1546,11 +1576,6 @@ const DD={
     {id:'a2',titre:'🎮 Dell Digital Academy — Discord lancé',contenu:"Notre communauté est sur Discord ! Rejoignez Dell Digital Academy pour accéder aux ressources.",auteur:'Lynx K. ADANGBALO',date:'8 juin 2026',pinned:true},
     {id:'a3',titre:'🤝 Partenariat Bafe & Associés confirmé',contenu:"Dell Digital intervient comme co-formateur pour la formation IA de Bafe & Associés.",auteur:'Lynx K. ADANGBALO',date:'5 juin 2026',pinned:false}
   ],
-  membres:[
-    {id:'m1',name:'Lynx K. ADANGBALO',email:'delldigital1@gmail.com',tel:'+228 98 06 91 11',role:'Admin',status:'actif',muted:false,av:'LK',color:'linear-gradient(135deg,var(--or),var(--blue))'},
-    {id:'m2',name:'Dell Digital',email:'contact@delldigital.tg',tel:'',role:'Officiel',status:'actif',muted:false,av:'DD',color:'linear-gradient(135deg,var(--neon),var(--blue))'},
-    {id:'m3',name:'Bafe & Associes',email:'bafe@partenaire.tg',tel:'+228 90 15 31 70',role:'Partenaire',status:'membre',muted:false,av:'BA',color:'linear-gradient(135deg,var(--admin),#7B2FBE)'}
-  ],
   events:[
     {id:'ev1',titre:'Formation Premium Jour 1',type:'Formation',date:'2026-06-23T18:00',lien:'meet.google.com/waf-bntr-fxm',public:'Fonctionnaires',color:'var(--neon)'},
     {id:'ev2',titre:'Formation Standard Jour 1',type:'Formation',date:'2026-06-25T18:00',lien:'meet.google.com/gwf-wtoj-fhz',public:'Entrepreneurs',color:'var(--or)'},
@@ -1568,14 +1593,6 @@ const DD={
   ],
   boutique_produits:[],
   boutique_commandes:[],
-  communication_posts:[
-    {id:'cp1',reseau:'FB+LK',date:'4 juin',titre:'Teaser — Et si votre IA travaillait pour vous ?',statut:'Publié',lien:''},
-    {id:'cp2',reseau:'FB',date:'6 juin',titre:"Post 2 — Combien d'heures perdez-vous ?",statut:'À publier',lien:''},
-    {id:'cp3',reseau:'FB+LK',date:'8 juin',titre:'Annonce officielle — Formation lancée !',statut:'À publier',lien:''},
-    {id:'cp4',reseau:'LK',date:'10 juin',titre:'Session Premium — Pour les Fonctionnaires',statut:'Planifié',lien:''},
-    {id:'cp5',reseau:'FB',date:'12 juin',titre:'Session Standard — Pour les Entrepreneurs',statut:'Planifié',lien:''},
-    {id:'cp6',reseau:'FB+LK',date:'17 juin',titre:'Urgence — Places limitées !',statut:'Planifié',lien:''}
-  ],
   notifications:[
     {id:'n1',ic:'👋',titre:'Bienvenue sur Dell Digital Workplace',desc:'Votre espace de travail est prêt. Explorez les sections du menu.',time:'Il y a 2j',c:'var(--neon)',lue:false},
     {id:'n2',ic:'🎓',titre:'Nouvelle session de formation',desc:'La session Premium du 23 juin est ouverte aux inscriptions.',time:'Il y a 1j',c:'var(--or)',lue:false},
@@ -1595,10 +1612,6 @@ const DD={
     {id:'r3',ic:'🖼️',titre:'Flyer Lancement General',desc:'1080x1080px - Facebook et LinkedIn',cat:'Visuel',col:'rgba(0,212,255,0.15)'},
     {id:'r4',ic:'🏢',titre:'Flyer Bafe & Associes',desc:'Flyer formation IA partenaire',cat:'Partenaire',col:'rgba(176,111,226,0.15)'}
   ],
-  forum:[
-    {id:'fp1',av:'LK',avc:'linear-gradient(135deg,var(--or),var(--blue))',auteur:'Lynx K. ADANGBALO',role:'Fondateur',time:'Il y a 2h',tag:'Annonce',content:"Bienvenue dans la communaute Dell Digital !",likes:5,replies:0},
-    {id:'fp2',av:'DD',avc:'linear-gradient(135deg,var(--neon),var(--blue))',auteur:'Dell Digital',role:'Officiel',time:'Il y a 1j',tag:'Formation',content:"La formation de juin 2026 est ouverte ! 3 sessions disponibles.",likes:8,replies:2}
-  ],
   leads:[
     {id:'l1',nom:'Kwame Asante',email:'kwame@agro.tg',tel:'+228 90 00 11 22',service:'Formation IA',budget:'150k-500k FCFA',date:'10/06/2026',status:'hot'},
     {id:'l2',nom:'Ama Koklou',email:'ama@mode.tg',tel:'+228 90 00 33 44',service:'Site e-commerce',budget:'150k-500k FCFA',date:'11/06/2026',status:'new'},
@@ -1609,14 +1622,6 @@ const DD={
     {id:'DD-2026-002',nom:'Ama Koklou',formation:'Assistant IA en 1h',date:'26/06/2026',status:'pending'},
     {id:'DD-2025-089',nom:'Mireille Yao',formation:'Marketing Digital 360°',date:'15/03/2026',status:'valid'}
   ],
-  projets:[
-    {id:'pj1',ic:'🤖',titre:'Integration IA pour PME',desc:"Deploiement d'assistants IA pour les PME togolaises. Automatisation des taches repetitives.",statut:'cours',auteur:'Lynx K. ADANGBALO',autorEmail:'delldigital1@gmail.com',date:'10 juin 2026',tags:['IA','PME','Automatisation']},
-    {id:'pj2',ic:'🌐',titre:'Plateforme e-learning Afrique',desc:"Developpement d'une plateforme de formation en ligne adaptee au marche africain.",statut:'plan',auteur:'Dell Digital',autorEmail:'contact@delldigital.tg',date:'12 juin 2026',tags:['Tech','Formation','Mobile']},
-    {id:'pj3',ic:'📊',titre:'Dashboard Analytics PME',desc:"Tableaux de bord KPI sur mesure pour les PME de Lome.",statut:'cours',auteur:'Lynx K. ADANGBALO',autorEmail:'delldigital1@gmail.com',date:'8 juin 2026',tags:['Data','Dashboard','PME']}
-  ],
-  projets_anc:[
-    {id:'pa1',titre:'🤝 Recherche collaborateur — Projet IA',contenu:"Je cherche un collaborateur pour le projet IA PME. Competences : Python, n8n, Claude API. Contactez-moi !",auteur:'Lynx K. ADANGBALO',autorEmail:'delldigital1@gmail.com',av:'LK',avc:'linear-gradient(135deg,var(--or),var(--blue))',date:'Il y a 1h',likes:3}
-  ]
 };
 const SUB_UCM={
   'accueil-annonces':'annonce','accueil-agenda':'event',
@@ -1632,9 +1637,12 @@ const GRP_UCM={PRINCIPAL:'annonce',BUSINESS:'lead',MARKETING:'post',SYSTEME:'ann
 function isActiveMember(){return currentUser.role==='admin'||currentUser.status==='actif';}
 function canViewProjets(){return currentUser.role==='admin'||currentUser.status==='actif'||currentUser.status==='membre';}
 function statutLabel(s){return {actif:'🟢 Membre Actif',membre:'🔵 Membre',nouveau:'🟡 Nouveau',mute:'🔴 Mute',inactif:'⚫ Inactif'}[s]||s||'Membre';}
-function changeStatus(id,newStatus){
-  const mems=DS.get('membres',DD.membres);const m=mems.find(x=>x.id===id);
-  if(m){m.status=newStatus;m.muted=(newStatus==='mute');DS.set('membres',mems);showToast('Statut mis a jour: '+statutLabel(newStatus),'success');setTimeout(()=>navigate(currentCat,currentSub),60);}
+async function changeStatus(id,newStatus){
+  try{
+    await wpAdminCrud('membre','upsert',id,{status:newStatus,muted:newStatus==='mute'});
+    showToast('Statut mis a jour: '+statutLabel(newStatus),'success');
+    setTimeout(()=>navigate(currentCat,currentSub),60);
+  }catch(e){showToast('Erreur : '+e.message,'error');}
 }
 function liveStatutLabel(s){return {planifie:'🔵 Planifiée',actif:'🟢 En direct',termine:'⚫ Terminée'}[s]||s;}
 function changeLiveStatus(id,newStatus){
@@ -1952,18 +1960,25 @@ function filterRessources(cat,evt){
 PAGES['communaute-forum']=function(){
   const isA=currentUser.role==='admin';
   let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>💬 <span class="o">Forum</span></h1><p>Espace de discussion pour la communauté.</p></div><button class="btn-add-main" style="background:linear-gradient(135deg,var(--blue),var(--neon))" onclick="openUCM(\'post\')">＋ Nouveau post</button></div><div class="fb" id="forumFilters"><button class="fc2 active" onclick="filterForum(\'all\',event)">Tous</button><button class="fc2" onclick="filterForum(\'Annonce\',event)">📣 Annonces</button><button class="fc2" onclick="filterForum(\'Formation\',event)">🎓 Formation</button><button class="fc2" onclick="filterForum(\'Astuces IA\',event)">💡 Astuces IA</button></div>';
-  h+='<div id="forumPosts">'+renderForumPosts('all')+'</div>';
+  h+='<div id="forumPosts"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+  loadForumAsync();
   return h;
+}
+async function loadForumAsync(){
+  const d=await wpPublicGet();
+  window.__wpForumCache=d.forum_posts||[];
+  const el=document.getElementById('forumPosts');
+  if(el) el.innerHTML=renderForumPosts('all');
 }
 function renderForumPosts(filter){
   const isA=currentUser.role==='admin';
-  const all=DS.get('forum_posts',DD.forum);
+  const all=window.__wpForumCache||[];
   const posts=filter==='all'?all:all.filter(p=>p.tag===filter);
   if(posts.length===0){return '<div class="empty-state"><div class="empty-state-ic">💬</div><div class="empty-state-title">Aucun post</div><div class="empty-state-desc">'+(filter==='all'?'Soyez le premier à poster !':'Aucun post dans cette catégorie pour le moment.')+'</div></div>';}
   let h='';
   posts.forEach(p=>{
     const del=isA?'<span class="fpac" style="color:var(--neon)" onclick="openUCM(\'post_edit\',\''+p.id+'\')">✏️</span><span class="fpac" style="color:var(--red)" onclick="askConfirm(\'Supprimer ce post ?\',\'del_post\',\''+p.id+'\')">🗑️</span>':'';
-    h+='<div class="fpost"><div class="fphead"><div class="fpav" style="background:'+p.avc+'">'+p.av+'</div><div class="fpmeta"><h4>'+p.auteur+'</h4><span>'+p.role+' · '+p.time+'</span></div><span class="fptag" style="margin-left:auto">'+p.tag+'</span></div><div class="fpcontent">'+p.content+'</div><div class="fpact"><span class="fpac" onclick="cmsExec(\'like\',\''+p.id+'\')">❤️ '+p.likes+'</span><span class="fpac">💬 '+p.replies+'</span>'+del+'</div></div>';
+    h+='<div class="fpost"><div class="fphead"><div class="fpav" style="background:'+p.avc+'">'+p.av+'</div><div class="fpmeta"><h4>'+p.auteur+'</h4><span>'+p.role+' · '+relTime(p.created_at)+'</span></div><span class="fptag" style="margin-left:auto">'+p.tag+'</span></div><div class="fpcontent">'+p.content+'</div><div class="fpact"><span class="fpac" onclick="cmsExec(\'like\',\''+p.id+'\')">❤️ '+p.likes+'</span><span class="fpac">💬 '+p.replies+'</span>'+del+'</div></div>';
   });
   return h;
 }
@@ -1974,13 +1989,21 @@ function filterForum(tag,evt){
 }
 
 PAGES['communaute-membres']=function(){
+  loadMembresAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>👥 <span class="o">Membres</span></h1><p>Gestion de la communauté Dell Digital.</p></div></div><div id="membresWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+async function loadMembresAsync(){
+  const d=await wpPublicGet();
+  const mems=d.membres||[];
+  window.__wpMembresCache=mems;
+  const wrap=document.getElementById('membresWrap');
+  if(!wrap) return;
   const isA=currentUser.role==='admin';
-  const mems=DS.get('membres',DD.membres);
   const sLbl={actif:'🟢 Actif',membre:'🔵 Membre',nouveau:'🟡 Nouveau',mute:'🔴 Muté',inactif:'⚫ Inactif'};
   const sMap={actif:'actif-membre',membre:'membre-std',nouveau:'nouveau',mute:'mute',inactif:'inactif'};
   const cnt={actif:0,membre:0,nouveau:0,mute:0};
   mems.forEach(m=>{const k=m.status||'membre';if(cnt[k]!==undefined)cnt[k]++;});
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>👥 <span class="o">Membres</span></h1><p>Gestion de la communauté Dell Digital.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'membre\')">＋ Ajouter</button>':'')+'</div>';
+  let h=(isA?'<div style="margin-bottom:14px"><button class="btn-add-main" onclick="openUCM(\'membre\')">＋ Ajouter</button></div>':'');
   h+='<div class="mem-stats"><div class="mem-stat-card" onclick="filterMembers(\'actif\')"><div class="mem-stat-val" style="color:var(--green)">'+cnt.actif+'</div><div class="mem-stat-lbl">🟢 Actifs</div></div><div class="mem-stat-card" onclick="filterMembers(\'membre\')"><div class="mem-stat-val" style="color:var(--neon)">'+cnt.membre+'</div><div class="mem-stat-lbl">🔵 Membres</div></div><div class="mem-stat-card" onclick="filterMembers(\'nouveau\')"><div class="mem-stat-val" style="color:var(--yellow)">'+cnt.nouveau+'</div><div class="mem-stat-lbl">🟡 Nouveaux</div></div><div class="mem-stat-card" onclick="filterMembers(\'mute\')"><div class="mem-stat-val" style="color:var(--red)">'+cnt.mute+'</div><div class="mem-stat-lbl">🔴 Muté</div></div></div>';
   h+='<div class="mem-filters" id="memFilters"><div class="mem-filter active" data-filter="all" onclick="filterMembers(\'all\')">Tous ('+mems.length+')</div><div class="mem-filter" data-filter="actif" onclick="filterMembers(\'actif\')">🟢 Actifs</div><div class="mem-filter" data-filter="membre" onclick="filterMembers(\'membre\')">🔵 Membres</div><div class="mem-filter" data-filter="nouveau" onclick="filterMembers(\'nouveau\')">🟡 Nouveaux</div><div class="mem-filter" data-filter="mute" onclick="filterMembers(\'mute\')">🔴 Muté</div></div>';
   if(isA){
@@ -1996,7 +2019,7 @@ PAGES['communaute-membres']=function(){
     mems.forEach(m=>{const st=m.status||'membre';h+='<div class="mcard" data-status="'+st+'"><div class="mavat" style="background:'+(m.color||'var(--surf2)')+'">'+m.name[0]+'</div><div class="mname">'+m.name+'</div><div class="mrole" style="background:rgba(232,96,10,0.12);color:var(--or)">'+m.role+'</div><span class="sbadge '+(sMap[st]||'membre-std')+'" style="margin-top:6px">'+sLbl[st]+'</span></div>';});
     h+='</div>';
   }
-  return h;
+  wrap.innerHTML=h;
 }
 
 PAGES['communaute-evenements']=function(){
@@ -2622,12 +2645,19 @@ PAGES['communication-posts'] = function() {
   const isA=currentUser.role==='admin';
   let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📱 <span class="o">Posts</span> Réseaux Sociaux</h1><p>Contenu planifié pour Facebook, LinkedIn et TikTok.</p></div>'+(isA?'<button class="btn-add-main" onclick="openUCM(\'commpost\')">＋ Nouveau post</button>':'')+'</div>'
     +'<div class="fb" id="commFilters"><button class="fc2 active" onclick="filterCommPosts(\'all\',event)">Tous</button><button class="fc2" onclick="filterCommPosts(\'FB\',event)">📘 Facebook</button><button class="fc2" onclick="filterCommPosts(\'LK\',event)">💼 LinkedIn</button><button class="fc2" onclick="filterCommPosts(\'apublier\',event)">⏳ À publier</button><button class="fc2" onclick="filterCommPosts(\'publie\',event)">✅ Publiés</button></div>';
-  h+='<div id="commPostsList">'+renderCommPosts('all')+'</div>';
+  h+='<div id="commPostsList"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+  loadCommPostsAsync('all');
   return h;
 };
+async function loadCommPostsAsync(filter){
+  const d=await wpAdminGet();
+  window.__wpCommpostsCache=d.communication_posts||[];
+  const el=document.getElementById('commPostsList');
+  if(el) el.innerHTML=renderCommPosts(filter);
+}
 function renderCommPosts(filter){
   const isA=currentUser.role==='admin';
-  const all=DS.get('communication_posts',DD.communication_posts);
+  const all=window.__wpCommpostsCache||[];
   let posts=all;
   if(filter==='FB'||filter==='LK') posts=all.filter(p=>p.reseau.includes(filter));
   else if(filter==='apublier') posts=all.filter(p=>p.statut==='À publier');
@@ -2639,7 +2669,7 @@ function renderCommPosts(filter){
     const lienHtml=p.lien?'<a href="'+p.lien+'" target="_blank" class="pac" style="color:var(--neon)">🔗 Voir la publication</a>':'';
     const delHtml=isA?'<span class="pac" style="color:var(--red)" onclick="askConfirm(\'Supprimer ce post ?\',\'del_commpost\',\''+p.id+'\')">🗑️ Supprimer</span>':'';
     const publierHtml=p.statut!=='Publié'?'<span class="pac" style="color:var(--green)" onclick="marquerPublie(\''+p.id+'\')">✅ Marquer publié</span>':'';
-    h+='<div class="pc"><div class="ph2"><div class="pav" style="background:linear-gradient(135deg,var(--or),var(--blue))">'+(p.reseau.includes('FB')?'F':'L')+'</div><div class="pmeta"><h4>'+p.titre+'</h4><span>'+p.date+' · '+p.reseau+'</span></div><span style="margin-left:auto;font-size:10px;color:'+sc+';font-weight:600">'+p.statut+'</span></div><div class="pact"><span class="pac" onclick="openUCM(\'commpost_edit\',\''+p.id+'\')">✏️ Modifier</span><span class="pac" onclick="copyCommPost(\''+p.id+'\')">📋 Copier</span>'+publierHtml+lienHtml+delHtml+'</div></div>';
+    h+='<div class="pc"><div class="ph2"><div class="pav" style="background:linear-gradient(135deg,var(--or),var(--blue))">'+(p.reseau.includes('FB')?'F':'L')+'</div><div class="pmeta"><h4>'+p.titre+'</h4><span>'+(p.date_text||'')+' · '+p.reseau+'</span></div><span style="margin-left:auto;font-size:10px;color:'+sc+';font-weight:600">'+p.statut+'</span></div><div class="pact"><span class="pac" onclick="openUCM(\'commpost_edit\',\''+p.id+'\')">✏️ Modifier</span><span class="pac" onclick="copyCommPost(\''+p.id+'\')">📋 Copier</span>'+publierHtml+lienHtml+delHtml+'</div></div>';
   });
   return h;
 }
@@ -2649,23 +2679,25 @@ function filterCommPosts(f,evt){
   if(evt&&evt.target) evt.target.classList.add('active');
 }
 function copyCommPost(id){
-  const p=DS.get('communication_posts',DD.communication_posts).find(x=>x.id===id);
+  const p=(window.__wpCommpostsCache||[]).find(x=>x.id===id);
   if(!p){showToast('Post introuvable','error');return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(p.titre).then(()=>showToast('Texte copié dans le presse-papier !','success')).catch(()=>showToast(p.titre,'info'));
   } else showToast(p.titre,'info');
 }
-function marquerPublie(id){
-  const posts=DS.get('communication_posts',DD.communication_posts);
-  const p=posts.find(x=>x.id===id);
+async function marquerPublie(id){
+  const p=(window.__wpCommpostsCache||[]).find(x=>x.id===id);
   if(!p){showToast('Post introuvable','error');return;}
-  if(!p.lien){
+  let lien=p.lien;
+  if(!lien){
     const url=prompt('Lien vers la publication (optionnel, vous pouvez l\'ajouter plus tard via Modifier) :','');
-    if(url) p.lien=url.trim();
+    if(url) lien=url.trim();
   }
-  p.statut='Publié'; DS.set('communication_posts',posts);
-  showToast('Marqué comme publié !','success');
-  navigate('communication','posts');
+  try{
+    await wpAdminPost({action:'upsert_commpost',id,patch:{statut:'Publié',lien:lien||null}});
+    showToast('Marqué comme publié !','success');
+    navigate('communication','posts');
+  }catch(e){showToast('Erreur : '+e.message,'error');}
 }
 
 PAGES['communication-planning'] = function() {
@@ -2781,13 +2813,14 @@ function showError(msg,type){
   setTimeout(hideError,4000);
 }
 
-function doMemberLogin(){
+async function doMemberLogin(){
   const email=document.getElementById('memberEmail')?.value.trim().toLowerCase();
   const pass=document.getElementById('memberPass')?.value.trim();
   if(!email||!pass){showError('Veuillez remplir tous les champs');return;}
   const members=getMembers(); const user=members[email];
   if(!user||user.pass!==pass){showError('Email ou mot de passe incorrect');return;}
-  const cm=DS.get('membres',DD.membres).find(m=>m.email&&m.email.toLowerCase()===email);
+  const d=await wpPublicGet();
+  const cm=(d.membres||[]).find(m=>m.email&&m.email.toLowerCase()===email);
   loginSuccess(email,'membre',cm?cm.name:user.name,cm?cm.status:'membre');
 }
 
@@ -3008,43 +3041,72 @@ function showToast(msg,type='info'){
    INIT
 ══════════════════════════════════════ */
 PAGES['projets-tableau']=function(){
-  const canCreate=isActiveMember();
   if(!canViewProjets()) return '<div class="projets-locked"><div class="projets-locked-ic">🔒</div><div class="projets-locked-title">Accès Membres uniquement</div><div class="projets-locked-desc">Connectez-vous ou demandez votre accès à l\'administrateur.</div><button class="btn-p" onclick="goWorkplace()">Se connecter →</button></div>';
-  const projets=DS.get('projets',DD.projets);
+  const canCreate=isActiveMember();
+  loadProjetsDataAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>💼 <span class="o">Projets</span></h1><p>Tableau des projets de la communauté Dell Digital.</p></div>'+(canCreate?'<button class="btn-add-main" onclick="openUCM(\'projet\')">＋ Nouveau projet</button>':'')+'</div>'
+    +(canCreate?'':'<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--neon)">👁️ Accès lecture seule — Demandez à l\'admin de vous promouvoir Membre Actif.</div>')
+    +'<div id="projetsWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+function renderProjetsTableau(){
+  const wrap=document.getElementById('projetsWrap');
+  if(!wrap) return;
+  const projets=window.__wpProjetsCache||[];
   const stL={cours:'🟢 En cours',plan:'🔵 Planifié',termine:'⚫ Terminé'};
   const stC={cours:'cours',plan:'plan',termine:'termine'};
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>💼 <span class="o">Projets</span></h1><p>Tableau des projets de la communauté Dell Digital.</p></div>'+(canCreate?'<button class="btn-add-main" onclick="openUCM(\'projet\')">＋ Nouveau projet</button>':'')+'</div>';
-  if(!canCreate) h+='<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--neon)">👁️ Accès lecture seule — Demandez à l\'admin de vous promouvoir Membre Actif.</div>';
-  if(projets.length===0){h+='<div class="empty-state"><div class="empty-state-ic">💼</div><div class="empty-state-title">Aucun projet</div><div class="empty-state-desc">Créez le premier projet de la communauté !</div>'+(canCreate?'<button class="btn-p" style="margin-top:14px" onclick="openUCM(\'projet\')">＋ Créer</button>':'')+'</div>';}
-  else{h+='<div class="projets-grid">';projets.forEach(p=>{const cE=canCreate&&(currentUser.role==='admin'||p.autorEmail===currentUser.email);const acts=cE?'<div class="projet-actions"><button class="btn-anc btn-anc-edit" onclick="openUCM(\'projet_edit\',\''+p.id+'\')">✏️ Modifier</button><button class="btn-anc btn-anc-del" onclick="askConfirm(\'Supprimer ce projet ?\',\'del_projet\',\''+p.id+'\')">🗑️ Supprimer</button></div>':'';const tags=(p.tags||[]).map(t=>'<span class="projet-tag">'+t+'</span>').join('');h+='<div class="projet-card"><div class="projet-card-header"><span class="projet-card-ic">'+p.ic+'</span><div class="projet-card-title">'+p.titre+'</div><div class="projet-card-desc">'+p.desc+'</div></div><div class="projet-card-body"><div class="projet-card-meta"><span class="projet-statut '+(stC[p.statut]||'plan')+'">'+stL[p.statut]+'</span><span class="projet-auteur">Par '+p.auteur+'</span></div>'+(tags?'<div class="projet-tags">'+tags+'</div>':'')+'<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+p.date+'</div>'+acts+'</div></div>';});h+='</div>';}
-  return h;
+  if(projets.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-state-ic">💼</div><div class="empty-state-title">Aucun projet</div><div class="empty-state-desc">Créez le premier projet de la communauté !</div></div>';return;}
+  let h='<div class="projets-grid">';
+  projets.forEach(p=>{const cE=currentUser.role==='admin';const acts=cE?'<div class="projet-actions"><button class="btn-anc btn-anc-edit" onclick="openUCM(\'projet_edit\',\''+p.id+'\')">✏️ Modifier</button><button class="btn-anc btn-anc-del" onclick="askConfirm(\'Supprimer ce projet ?\',\'del_projet\',\''+p.id+'\')">🗑️ Supprimer</button></div>':'';const tags=(p.tags||[]).map(t=>'<span class="projet-tag">'+t+'</span>').join('');h+='<div class="projet-card"><div class="projet-card-header"><span class="projet-card-ic">'+p.ic+'</span><div class="projet-card-title">'+p.titre+'</div><div class="projet-card-desc">'+p.desc_txt+'</div></div><div class="projet-card-body"><div class="projet-card-meta"><span class="projet-statut '+(stC[p.statut]||'plan')+'">'+stL[p.statut]+'</span><span class="projet-auteur">Par '+p.auteur+'</span></div>'+(tags?'<div class="projet-tags">'+tags+'</div>':'')+'<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+new Date(p.created_at).toLocaleDateString('fr-FR')+'</div>'+acts+'</div></div>';});
+  h+='</div>';
+  wrap.innerHTML=h;
 }
 
 PAGES['projets-annonces']=function(){
-  const canCreate=isActiveMember();
   if(!canViewProjets()) return '<div class="projets-locked"><div class="projets-locked-ic">🔒</div><div class="projets-locked-title">Espace Membres</div><div class="projets-locked-desc">Réservé aux membres Dell Digital.</div><button class="btn-p" onclick="goWorkplace()">Se connecter →</button></div>';
-  const ancs=DS.get('projets_anc',DD.projets_anc);
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📣 <span class="o">Annonces Projets</span></h1><p>Publications exclusives de la communauté des membres actifs.</p></div>'+(canCreate?'<button class="btn-add-main" onclick="openUCM(\'projet_anc\')">＋ Nouvelle annonce</button>':'')+'</div>';
-  if(!canCreate) h+='<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--neon)">👁️ Accès lecture seule — Devenez Membre Actif pour publier.</div>';
-  if(ancs.length===0){h+='<div class="empty-state"><div class="empty-state-ic">📣</div><div class="empty-state-title">Aucune annonce projet</div><div class="empty-state-desc">Publiez la première annonce !</div>'+(canCreate?'<button class="btn-p" style="margin-top:14px" onclick="openUCM(\'projet_anc\')">＋ Publier</button>':'')+'</div>';}
-  else ancs.forEach(a=>{const cE=canCreate&&(currentUser.role==='admin'||a.autorEmail===currentUser.email);const acts=cE?'<span class="proj-anc-act" style="color:var(--neon)" onclick="openUCM(\'proj_anc_edit\',\''+a.id+'\')">✏️</span><span class="proj-anc-act" style="color:var(--red)" onclick="askConfirm(\'Supprimer ?\',\'del_proj_anc\',\''+a.id+'\')">🗑️</span>':'';h+='<div class="proj-anc"><div class="proj-anc-head"><div class="proj-anc-av" style="background:'+(a.avc||'linear-gradient(135deg,var(--or),var(--blue))')+'">'+( a.av||'M')+'</div><div><div class="proj-anc-name">'+a.auteur+'<span class="actif-badge">ACTIF</span></div><div class="proj-anc-meta">'+a.date+'</div></div></div><div class="proj-anc-title">'+a.titre+'</div><div class="proj-anc-content">'+a.contenu+'</div><div class="proj-anc-foot"><span class="proj-anc-act" onclick="cmsExec(\'like_proj\',\''+a.id+'\')">❤️ '+(a.likes||0)+'</span>'+acts+'</div></div>';});
-  return h;
+  const canCreate=isActiveMember();
+  loadProjetsDataAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>📣 <span class="o">Annonces Projets</span></h1><p>Publications exclusives de la communauté des membres actifs.</p></div>'+(canCreate?'<button class="btn-add-main" onclick="openUCM(\'projet_anc\')">＋ Nouvelle annonce</button>':'')+'</div>'
+    +(canCreate?'':'<div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--neon)">👁️ Accès lecture seule — Devenez Membre Actif pour publier.</div>')
+    +'<div id="projetsAncWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+function renderProjetsAnnonces(){
+  const wrap=document.getElementById('projetsAncWrap');
+  if(!wrap) return;
+  const ancs=window.__wpProjetsAncCache||[];
+  if(ancs.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-state-ic">📣</div><div class="empty-state-title">Aucune annonce projet</div><div class="empty-state-desc">Publiez la première annonce !</div></div>';return;}
+  let h='';
+  ancs.forEach(a=>{const cE=currentUser.role==='admin';const acts=cE?'<span class="proj-anc-act" style="color:var(--neon)" onclick="openUCM(\'proj_anc_edit\',\''+a.id+'\')">✏️</span><span class="proj-anc-act" style="color:var(--red)" onclick="askConfirm(\'Supprimer ?\',\'del_proj_anc\',\''+a.id+'\')">🗑️</span>':'';h+='<div class="proj-anc"><div class="proj-anc-head"><div class="proj-anc-av" style="background:'+(a.avc||'linear-gradient(135deg,var(--or),var(--blue))')+'">'+( a.av||'M')+'</div><div><div class="proj-anc-name">'+a.auteur+'<span class="actif-badge">ACTIF</span></div><div class="proj-anc-meta">'+relTime(a.created_at)+'</div></div></div><div class="proj-anc-title">'+a.titre+'</div><div class="proj-anc-content">'+a.contenu+'</div><div class="proj-anc-foot"><span class="proj-anc-act" onclick="cmsExec(\'like_proj\',\''+a.id+'\')">❤️ '+(a.likes||0)+'</span>'+acts+'</div></div>';});
+  wrap.innerHTML=h;
+}
+
+async function loadProjetsDataAsync(){
+  const d=await wpPublicGet();
+  window.__wpProjetsCache=d.projets||[];
+  window.__wpProjetsAncCache=d.projets_anc||[];
+  renderProjetsTableau();
+  renderProjetsAnnonces();
+  renderMesPublications();
 }
 
 PAGES['projets-publications']=function(){
   if(!canViewProjets()) return '<div class="projets-locked"><div class="projets-locked-ic">🔒</div><div class="projets-locked-title">Accès Membres uniquement</div><div class="projets-locked-desc">Connectez-vous pour accéder à vos publications.</div><button class="btn-p" onclick="goWorkplace()">Se connecter →</button></div>';
+  loadProjetsDataAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>📝 <span class="o">Mes Publications</span></h1><p>Vos projets et annonces dans la communauté.</p></div></div><div id="mesPubWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+function renderMesPublications(){
+  const wrap=document.getElementById('mesPubWrap');
+  if(!wrap) return;
   const canCreate=isActiveMember();
-  const myP=DS.get('projets',DD.projets).filter(p=>p.autorEmail===currentUser.email);
-  const myA=DS.get('projets_anc',DD.projets_anc).filter(a=>a.autorEmail===currentUser.email);
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📝 <span class="o">Mes Publications</span></h1><p>Vos projets et annonces dans la communauté.</p></div></div>';
-  if(!canCreate) h+='<div style="background:rgba(255,179,71,0.08);border:1px solid rgba(255,179,71,0.2);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:12px;color:var(--yellow)">⚠️ Demandez à l\'admin de vous promouvoir <strong>Membre Actif</strong> pour créer du contenu.</div>';
+  const myP=(window.__wpProjetsCache||[]).filter(p=>p.auteur_email===currentUser.email);
+  const myA=(window.__wpProjetsAncCache||[]).filter(a=>a.auteur_email===currentUser.email);
+  let h=canCreate?'':'<div style="background:rgba(255,179,71,0.08);border:1px solid rgba(255,179,71,0.2);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:12px;color:var(--yellow)">⚠️ Demandez à l\'admin de vous promouvoir <strong>Membre Actif</strong> pour créer du contenu.</div>';
   h+='<div style="font-family:Orbitron,monospace;font-size:13px;font-weight:700;color:var(--silver2);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--borderl)">💼 Mes projets ('+myP.length+')</div>';
   if(myP.length===0){h+='<div class="empty-state" style="padding:24px"><div class="empty-state-ic" style="font-size:32px">💼</div><div class="empty-state-title">Aucun projet créé</div>'+(canCreate?'<button class="btn-p" style="margin-top:10px" onclick="openUCM(\'projet\')">＋ Créer</button>':'')+'</div>';}
-  else{h+='<div class="projets-grid">';myP.forEach(p=>{h+='<div class="projet-card"><div class="projet-card-header"><span class="projet-card-ic">'+p.ic+'</span><div class="projet-card-title">'+p.titre+'</div></div><div class="projet-card-body"><div class="projet-actions"><button class="btn-anc btn-anc-edit" onclick="openUCM(\'projet_edit\',\''+p.id+'\')">✏️</button><button class="btn-anc btn-anc-del" onclick="askConfirm(\'Supprimer ?\',\'del_projet\',\''+p.id+'\')">🗑️</button></div></div></div>';});h+='</div>';}
+  else{h+='<div class="projets-grid">';myP.forEach(p=>{h+='<div class="projet-card"><div class="projet-card-header"><span class="projet-card-ic">'+p.ic+'</span><div class="projet-card-title">'+p.titre+'</div></div></div>';});h+='</div>';}
   h+='<div style="font-family:Orbitron,monospace;font-size:13px;font-weight:700;color:var(--silver2);margin:22px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--borderl)">📣 Mes annonces ('+myA.length+')</div>';
   if(myA.length===0){h+='<div class="empty-state" style="padding:24px"><div class="empty-state-ic" style="font-size:32px">📣</div><div class="empty-state-title">Aucune annonce</div>'+(canCreate?'<button class="btn-p" style="margin-top:10px" onclick="openUCM(\'projet_anc\')">＋ Publier</button>':'')+'</div>';}
-  else myA.forEach(a=>{h+='<div class="proj-anc"><div class="proj-anc-title">'+a.titre+'</div><div class="proj-anc-content">'+a.contenu+'</div><div class="proj-anc-foot"><span class="proj-anc-act" style="color:var(--neon)" onclick="openUCM(\'proj_anc_edit\',\''+a.id+'\')">✏️</span><span class="proj-anc-act" style="color:var(--red)" onclick="askConfirm(\'Supprimer ?\',\'del_proj_anc\',\''+a.id+'\')">🗑️</span></div></div>';});
-  return h;
+  else myA.forEach(a=>{h+='<div class="proj-anc"><div class="proj-anc-title">'+a.titre+'</div><div class="proj-anc-content">'+a.contenu+'</div></div>';});
+  wrap.innerHTML=h;
 }
 
 PAGES['boutique-catalogue']=function(){
@@ -3307,17 +3369,17 @@ function buildUCMBody(type,editId){
     if(t.includes('annonce_edit')&&!t.includes('draft')) return DS.get('annonces_pub',DD.annonces_pub).find(a=>a.id===id);
     if(t.includes('draft')) return DS.get('annonces_draft',[]).find(a=>a.id===id);
     if(t.includes('event')) return DS.get('events',DD.events).find(e=>e.id===id);
-    if(t.includes('membre')) return DS.get('membres',DD.membres).find(m=>m.id===id);
+    if(t.includes('membre')) return (window.__wpMembresCache||[]).find(m=>m.id===id);
     if(t.includes('session')) return DS.get('sessions_list',DD.sessions).find(s=>s.id===id);
     if(t.includes('liveroom')) return DS.get('live_rooms',DD.live_rooms).find(r=>r.id===id);
     if(t.includes('produit')) return DS.get('boutique_produits',DD.boutique_produits).find(p=>p.id===id);
-    if(t.includes('commpost')) return DS.get('communication_posts',DD.communication_posts).find(p=>p.id===id);
+    if(t.includes('commpost')) return (window.__wpCommpostsCache||[]).find(p=>p.id===id);
     if(t.includes('module')) return DS.get('modules_cours',DD.modules).find(m=>m.id===id);
     if(t.includes('ressource')) return DS.get('ressources',DD.ressources).find(r=>r.id===id);
-    if(t.includes('post')) return DS.get('forum_posts',DD.forum).find(p=>p.id===id);
+    if(t.includes('post')) return (window.__wpForumCache||[]).find(p=>p.id===id);
     if(t.includes('lead')) return (window.__wpLeadsCache||[]).find(l=>l.id===id);
-    if(t.includes('projet_anc')||t.includes('proj_anc')) return DS.get('projets_anc',DD.projets_anc).find(a=>a.id===id);
-    if(t.includes('projet')) return DS.get('projets',DD.projets).find(p=>p.id===id);
+    if(t.includes('projet_anc')||t.includes('proj_anc')) return (window.__wpProjetsAncCache||[]).find(a=>a.id===id);
+    if(t.includes('projet')) return (window.__wpProjetsCache||[]).find(p=>p.id===id);
     return null;
   }
   const d=getData(type,editId)||{};
@@ -3415,9 +3477,11 @@ async function submitUCM(isDraft){
       const name=g('f_name'),email=g('f_email');if(!name||!email){showToast('Nom et email requis','error');return;}
       const av=name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
       const cols=['linear-gradient(135deg,var(--or),var(--blue))','linear-gradient(135deg,var(--neon),var(--blue))','linear-gradient(135deg,var(--admin),#7B2FBE)','linear-gradient(135deg,var(--green),var(--blue))'];
-      const item={id:_ucmEditId||uid(),name,email,tel:g('f_tel'),role:g('f_role'),status:g('f_status')||'membre',muted:g('f_status')==='mute',av,color:cols[Math.floor(Math.random()*cols.length)]};
-      if(_ucmEditId)DS.upd('membres',_ucmEditId,item);else DS.push('membres',item,DD.membres);
-      showToast(_ucmEditId?'Membre modifié !':'Membre ajouté !','success');
+      const patch={name,email,tel:g('f_tel'),role:g('f_role'),status:g('f_status')||'membre',muted:g('f_status')==='mute',av,color:cols[Math.floor(Math.random()*cols.length)]};
+      try{
+        await wpAdminCrud('membre','upsert',_ucmEditId||null,patch);
+        showToast(_ucmEditId?'Membre modifié !':'Membre ajouté !','success');
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('session')){
       const nom=g('f_nom'),pub=g('f_public');if(!nom||!pub){showToast('Nom et public requis','error');return;}
@@ -3441,9 +3505,11 @@ async function submitUCM(isDraft){
     }
     else if(t.includes('commpost')){
       const titre=g('f_titre');if(!titre){showToast('Le texte du post est requis','error');return;}
-      const item={id:_ucmEditId||uid(),titre,reseau:g('f_reseau')||'FB',date:g('f_date')||'',statut:g('f_statut')||'Planifié',lien:g('f_lien')||''};
-      if(_ucmEditId)DS.upd('communication_posts',_ucmEditId,item);else DS.push('communication_posts',item,DD.communication_posts);
-      showToast(_ucmEditId?'Post modifié !':'Post créé !','success');
+      const patch={titre,reseau:g('f_reseau')||'FB',date_text:g('f_date')||'',statut:g('f_statut')||'Planifié',lien:g('f_lien')||''};
+      try{
+        await wpAdminPost({action:'upsert_commpost',id:_ucmEditId||null,patch});
+        showToast(_ucmEditId?'Post modifié !':'Post créé !','success');
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('module')){
       const titre=g('f_titre'),desc=g('f_desc');if(!titre||!desc){showToast('Titre et description requis','error');return;}
@@ -3461,10 +3527,16 @@ async function submitUCM(isDraft){
     }
     else if(t.includes('post')){
       const titre=g('f_titre'),content=g('f_content');if(!titre||!content){showToast('Titre et contenu requis','error');return;}
-      const av=currentUser.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-      const item={id:_ucmEditId||uid(),av,avc:'linear-gradient(135deg,var(--or),var(--blue))',auteur:currentUser.name,role:currentUser.role,time:'À l\'instant',tag:g('f_tag'),content,likes:0,replies:0};
-      if(_ucmEditId)DS.upd('forum_posts',_ucmEditId,item);else{DS.push('forum_posts',item,DD.forum);addNotification('Nouveau post forum',currentUser.name+' a publié dans le forum','💬');}
-      showToast(_ucmEditId?'Post modifié !':'Post publié !','success');
+      try{
+        if(_ucmEditId){
+          await wpAdminCrud('post','upsert',_ucmEditId,{tag:g('f_tag'),content});
+          showToast('Post modifié !','success');
+        }else{
+          await wpSubmitContent({type:'post',content,tag:g('f_tag'),auteur_name:currentUser.name,auteur_role:currentUser.role});
+          addNotification('Nouveau post forum',currentUser.name+' a publié dans le forum','💬');
+          showToast('Post publié !','success');
+        }
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('lead')){
       const nom=g('f_nom'),tel=g('f_tel');if(!nom||!tel){showToast('Nom et téléphone requis','error');return;}
@@ -3484,18 +3556,30 @@ async function submitUCM(isDraft){
     }
     else if(t.includes('proj_anc')||t.includes('projet_anc')){
       const titre=g('f_titre'),contenu=g('f_contenu');if(!titre||!contenu){showToast('Titre et contenu requis','error');return;}
-      if(!isActiveMember()){showToast('Réservé aux Membres Actifs','error');return;}
-      const av=currentUser.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-      const item={id:_ucmEditId||uid(),titre,contenu,auteur:currentUser.name,autorEmail:currentUser.email,av,avc:'linear-gradient(135deg,var(--or),var(--blue))',date:'À l\'instant',likes:0};
-      if(_ucmEditId)DS.upd('projets_anc',_ucmEditId,item);else DS.push('projets_anc',item,DD.projets_anc);
-      showToast(_ucmEditId?'Annonce modifiée !':'Annonce publiée !','success');
+      if(!_ucmEditId&&!isActiveMember()){showToast('Réservé aux Membres Actifs','error');return;}
+      try{
+        if(_ucmEditId){
+          await wpAdminCrud('projet_anc','upsert',_ucmEditId,{titre,contenu});
+          showToast('Annonce modifiée !','success');
+        }else{
+          await wpSubmitContent({type:'projet_anc',titre,contenu,auteur_name:currentUser.name,auteur_email:currentUser.email});
+          showToast('Annonce publiée !','success');
+        }
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('projet')){
       const titre=g('f_titre'),desc=g('f_desc');if(!titre||!desc){showToast('Titre et description requis','error');return;}
       const tags=g('f_tags').split(',').map(t=>t.trim()).filter(Boolean);
-      const item={id:_ucmEditId||uid(),ic:g('f_ic')||'💼',titre,desc,statut:g('f_statut')||'plan',auteur:currentUser.name,autorEmail:currentUser.email,date:now,tags};
-      if(_ucmEditId)DS.upd('projets',_ucmEditId,item);else DS.push('projets',item,DD.projets);
-      showToast(_ucmEditId?'Projet modifié !':'Projet créé !','success');
+      try{
+        if(_ucmEditId){
+          await wpAdminCrud('projet','upsert',_ucmEditId,{ic:g('f_ic')||'💼',titre,desc_txt:desc,statut:g('f_statut')||'plan',tags});
+          showToast('Projet modifié !','success');
+        }else{
+          if(!isActiveMember()){showToast('Réservé aux Membres Actifs','error');return;}
+          await wpSubmitContent({type:'projet',ic:g('f_ic')||'💼',titre,desc_txt:desc,statut:g('f_statut')||'plan',auteur_name:currentUser.name,auteur_email:currentUser.email,tags});
+          showToast('Projet créé !','success');
+        }
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
   }catch(err){showToast('Erreur: '+err.message,'error');return;}
   closeUCM();
@@ -3518,30 +3602,30 @@ function executeConfirm(){
   const nav=()=>setTimeout(()=>navigate(currentCat,currentSub),60);
   const ACT={
     del_anc:(id,cat)=>{DS.remove(cat==='pub'?'annonces_pub':'annonces_draft',id);showToast('Annonce supprimée','success');nav();},
-    del_membre:(id)=>{DS.remove('membres',id);showToast('Membre supprimé','success');nav();},
+    del_membre:async(id)=>{try{await wpAdminCrud('membre','delete',id);showToast('Membre supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_event:(id)=>{DS.remove('events',id);showToast('Événement supprimé','success');nav();},
     del_session:(id)=>{DS.remove('sessions_list',id);showToast('Session supprimée','success');nav();},
     del_liveroom:(id)=>{DS.remove('live_rooms',id);showToast('Salle supprimée','success');nav();},
     del_produit:(id)=>{DS.remove('boutique_produits',id);showToast('Produit supprimé','success');nav();},
-    del_commpost:(id)=>{DS.remove('communication_posts',id);showToast('Post supprimé','success');nav();},
+    del_commpost:async(id)=>{try{await wpAdminPost({action:'delete_commpost',id});showToast('Post supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_module:(id)=>{DS.remove('modules_cours',id);showToast('Module supprimé','success');nav();},
     del_ressource:(id)=>{DS.remove('ressources',id);showToast('Ressource supprimée','success');nav();},
-    del_post:(id)=>{DS.remove('forum_posts',id);showToast('Post supprimé','success');nav();},
+    del_post:async(id)=>{try{await wpAdminCrud('post','delete',id);showToast('Post supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_lead:async(id)=>{try{await wpAdminPost({action:'delete_lead',id});showToast('Lead supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_deal:async(id)=>{try{await wpAdminPost({action:'delete_deal',id});showToast('Deal supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
-    del_projet:(id)=>{DS.remove('projets',id);showToast('Projet supprimé','success');nav();},
-    del_proj_anc:(id)=>{DS.remove('projets_anc',id);showToast('Annonce supprimée','success');nav();}
+    del_projet:async(id)=>{try{await wpAdminCrud('projet','delete',id);showToast('Projet supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
+    del_proj_anc:async(id)=>{try{await wpAdminCrud('projet_anc','delete',id);showToast('Annonce supprimée','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}}
   };
   if(ACT[key])try{ACT[key](...(args||[]));}catch(e){showToast('Erreur','error');}
 }
 
 /* ── Actions rapides ── */
 let _aiLast={titre:'',contenu:''};
-function cmsExec(action,id){
+async function cmsExec(action,id){
   if(action==='pin'){const p=DS.get('annonces_pub',DD.annonces_pub);const it=p.find(a=>a.id===id);if(it){it.pinned=!it.pinned;DS.set('annonces_pub',p);navigate(currentCat,currentSub);}}
   else if(action==='publish'){const d=DS.get('annonces_draft',[]);const it=d.find(a=>a.id===id);if(!it)return;DS.remove('annonces_draft',id);const p=DS.get('annonces_pub',DD.annonces_pub);it.date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});p.push(it);DS.set('annonces_pub',p);showToast('Annonce publiée !','success');navigate(currentCat,currentSub);}
-  else if(action==='like'){const p=DS.get('forum_posts',DD.forum);const it=p.find(x=>x.id===id);if(it){it.likes=(it.likes||0)+1;DS.set('forum_posts',p);navigate(currentCat,currentSub);}}
-  else if(action==='like_proj'){const p=DS.get('projets_anc',DD.projets_anc);const it=p.find(x=>x.id===id);if(it){it.likes=(it.likes||0)+1;DS.set('projets_anc',p);navigate(currentCat,currentSub);}}
+  else if(action==='like'){try{await wpSubmitContent({type:'like_post',id});navigate(currentCat,currentSub);}catch(e){showToast('Erreur : '+e.message,'error');}}
+  else if(action==='like_proj'){try{await wpSubmitContent({type:'like_projet_anc',id});navigate(currentCat,currentSub);}catch(e){showToast('Erreur : '+e.message,'error');}}
 }
 
 /* ── Filtres membres ── */
