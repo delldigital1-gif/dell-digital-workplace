@@ -6,6 +6,7 @@
 <title>Dell Digital — Consulting Numérique · Lomé, Togo</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ══════════════════════════════════════════════════════════
    DELL DIGITAL v2 — DESIGN SYSTEM
@@ -1294,11 +1295,28 @@ select.ucm-input option{background:var(--surf)}
 /* ══════════════════════════════════════
    CORE CONFIG
 ══════════════════════════════════════ */
-const ADMINS = {
-  admin: { pass: 'DellTogo!2026#Kx9Lm', name: 'Lynx K. ADANGBALO' },
-  lynx: { pass: 'DellTogo!2026#Kx9Lm', name: 'Lynx K. ADANGBALO' },
-  'delldigital1@gmail.com': { pass: 'DellTogo!2026#Kx9Lm', name: 'Lynx K. ADANGBALO' }
-};
+// Backend Workplace (leads, commandes boutique, authentification admin) --
+// projet Supabase partage avec Dell Digital Partner. Cle anon, publique par
+// conception (RLS + Edge Functions protegent les vraies donnees).
+const WP_SUPABASE_URL = 'https://hednrngduqyttcdgnbxu.supabase.co';
+const WP_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZG5ybmdkdXF5dHRjZGduYnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODgxNjYsImV4cCI6MjA5OTc2NDE2Nn0.OCAFkFfH_tQ9Y2bKOidmtAlU6BZJdnhcsBF8LMljEXQ';
+const wpsb = supabase.createClient(WP_SUPABASE_URL, WP_SUPABASE_ANON_KEY);
+
+async function wpAdminGet(){
+  const{data:{session}}=await wpsb.auth.getSession();
+  if(!session) return {leads:[],commandes:[]};
+  const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-admin-data',{headers:{Authorization:'Bearer '+session.access_token}});
+  if(!r.ok) return {leads:[],commandes:[]};
+  return r.json();
+}
+async function wpAdminPost(body){
+  const{data:{session}}=await wpsb.auth.getSession();
+  if(!session) throw new Error('Session admin expirée, reconnectez-vous.');
+  const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-admin-data',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||'Erreur serveur');
+  return d;
+}
 
 const ACCESS = {
   admin: ['accueil','formations','communaute','projets','boutique','clients','services','partenaires','communication','analyses','admin','devis','pipeline','certifications','contact'],
@@ -1328,7 +1346,16 @@ function restoreSessionUI(sess){
   setTimeout(initChat,1000);
 }
 const __savedSession=loadSession();
-if(__savedSession && __savedSession.role!=='visiteur'){
+if(__savedSession && __savedSession.role==='admin'){
+  wpsb.auth.getSession().then(({data})=>{
+    if(data.session){
+      window.__sessionRestored=true;
+      setTimeout(()=>{ try{ restoreSessionUI(__savedSession); }catch(e){} },50);
+    } else {
+      clearSession();
+    }
+  });
+} else if(__savedSession && __savedSession.role!=='visiteur'){
   window.__sessionRestored=true;
   setTimeout(()=>{ try{ restoreSessionUI(__savedSession); }catch(e){} },50);
 }
@@ -2393,7 +2420,7 @@ PAGES['contact-formulaire'] = function() {
   </div>`;
 };
 
-function submitContactForm() {
+async function submitContactForm() {
   const nom=document.getElementById('cfNom')?.value.trim();
   const email=document.getElementById('cfEmail')?.value.trim();
   const tel=document.getElementById('cfTel')?.value.trim();
@@ -2402,21 +2429,40 @@ function submitContactForm() {
   const budget=document.getElementById('cfBudget')?.value;
   const message=document.getElementById('cfMessage')?.value.trim();
   if(!nom||!email||!service){showToast('Veuillez remplir les champs obligatoires','error');return;}
-  const item={id:'lead_'+Date.now(),nom,tel,email,entreprise,service,budget:(budget&&!budget.startsWith('—'))?budget:'—',message,date:new Date().toLocaleDateString('fr-FR'),status:'new'};
-  DS.push('leads',item,DD.leads);
-  addNotification('Nouvelle demande client','"'+nom+'" — '+service,'📬');
-  showToast('Demande enregistrée avec succès !','success');
-  document.querySelectorAll('.cf-input').forEach(el=>{if(el.tagName==='SELECT'){el.selectedIndex=0;}else{el.value='';}});
+  const btn=document.querySelector('.btn-cf-submit');
+  if(btn){btn.disabled=true;btn.textContent='Envoi...';}
+  try{
+    const r=await fetch(WP_SUPABASE_URL+'/functions/v1/wp-submit-lead',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nom,email,tel,entreprise,service,budget:(budget&&!budget.startsWith('—'))?budget:null,message})
+    });
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Erreur serveur');}
+    showToast('Demande enregistrée avec succès !','success');
+    document.querySelectorAll('.cf-input').forEach(el=>{if(el.tagName==='SELECT'){el.selectedIndex=0;}else{el.value='';}});
+  }catch(e){
+    showToast('Erreur : '+e.message,'error');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='📨 Envoyer la demande';}
+  }
 }
 
 PAGES['contact-leads']=function(){
+  loadLeadsAsync();
+  return '<div class="ph-actions anim-up"><div class="ph-left"><h1>📊 <span class="o">Leads</span></h1><p id="leadsCount">Chargement…</p></div><button class="btn-add-main" onclick="openUCM(\'lead\')">＋ Nouveau lead</button></div><div id="leadsDataWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+}
+async function loadLeadsAsync(){
   const isA=currentUser.role==='admin';
-  const ldata=DS.get('leads',DD.leads);
   const sl={new:'🆕 Nouveau',hot:'🔥 Chaud',warm:'Tiède',done:'✅ Traité'};
-  let h='<div class="ph-actions anim-up"><div class="ph-left"><h1>📊 <span class="o">Leads</span></h1><p>'+ldata.length+' demande(s) client.</p></div><button class="btn-add-main" onclick="openUCM(\'lead\')">＋ Nouveau lead</button></div>';
-  if(ldata.length===0){h+='<div class="empty-state"><div class="empty-state-ic">🎯</div><div class="empty-state-title">Aucun lead</div><div class="empty-state-desc">Ajoutez des prospects clients.</div></div>';}
-  else{let rows='';ldata.forEach(l=>{rows+='<tr><td><div style="font-weight:600">'+l.nom+'</div><div style="font-size:10px;color:var(--muted)">'+l.email+'</div></td><td>'+(l.tel||'—')+'</td><td>'+l.service+'</td><td>'+(l.budget||'—')+'</td><td>'+l.date+'</td><td><span class="sbadge '+l.status+'">'+(sl[l.status]||l.status)+'</span></td><td><div style="display:flex;gap:4px"><button class="btn-sm btn-sm-edit" onclick="openUCM(\'lead_edit\',\''+l.id+'\')">✏️</button>'+(isA?'<button class="btn-sm btn-sm-del" onclick="askConfirm(\'Supprimer ?\',\'del_lead\',\''+l.id+'\')">🗑️</button>':'')+'</div></td></tr>';});h+='<div class="leads-table"><table><thead><tr><th>Nom</th><th>Tél</th><th>Service</th><th>Budget</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}
-  return h;
+  const d=await wpAdminGet();
+  const ldata=d.leads||[];
+  window.__wpLeadsCache=ldata;
+  const wrap=document.getElementById('leadsDataWrap');
+  const countEl=document.getElementById('leadsCount');
+  if(!wrap) return;
+  if(countEl) countEl.textContent=ldata.length+' demande(s) client.';
+  if(ldata.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-state-ic">🎯</div><div class="empty-state-title">Aucun lead</div><div class="empty-state-desc">Ajoutez des prospects clients.</div></div>';return;}
+  let rows='';ldata.forEach(l=>{rows+='<tr><td><div style="font-weight:600">'+l.nom+'</div><div style="font-size:10px;color:var(--muted)">'+l.email+'</div></td><td>'+(l.tel||'—')+'</td><td>'+l.service+'</td><td>'+(l.budget||'—')+'</td><td>'+new Date(l.created_at).toLocaleDateString('fr-FR')+'</td><td><span class="sbadge '+l.status+'">'+(sl[l.status]||l.status)+'</span></td><td><div style="display:flex;gap:4px"><button class="btn-sm btn-sm-edit" onclick="openUCM(\'lead_edit\',\''+l.id+'\')">✏️</button>'+(isA?'<button class="btn-sm btn-sm-del" onclick="askConfirm(\'Supprimer ?\',\'del_lead\',\''+l.id+'\')">🗑️</button>':'')+'</div></td></tr>';});
+  wrap.innerHTML='<div class="leads-table"><table><thead><tr><th>Nom</th><th>Tél</th><th>Service</th><th>Budget</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 /* ══════════════════════════════════════════
@@ -2760,16 +2806,22 @@ function openAdminModal(){
 function closeAdminModal(){ document.getElementById('adminModal').classList.remove('open'); }
 document.getElementById('adminModal').addEventListener('click',function(e){if(e.target===this)closeAdminModal();});
 
-function doAdminLogin(){
-  const raw=document.getElementById('adminEmail').value.trim();
-  const input=raw.toLowerCase();
+const ADMIN_EMAIL='delldigital1@gmail.com', ADMIN_NAME='Lynx K. ADANGBALO';
+const ADMIN_ALIASES=['admin','lynx',ADMIN_EMAIL];
+
+async function doAdminLogin(){
+  const raw=document.getElementById('adminEmail').value.trim().toLowerCase();
   const pass=document.getElementById('adminPass').value.trim();
   const err=document.getElementById('adminModalError');
-  let admin=ADMINS[input]||ADMINS[input.split('@')[0]];
-  if(!admin){for(const k in ADMINS){if(k.toLowerCase()===input||k.toLowerCase()===input.split('@')[0]){admin=ADMINS[k];break;}}}
-  if(!admin||admin.pass!==pass){err.textContent='Identifiant ou mot de passe incorrect';err.classList.add('show');setTimeout(()=>err.classList.remove('show'),3000);return;}
+  if(!ADMIN_ALIASES.includes(raw)||!pass){err.textContent='Identifiant ou mot de passe incorrect';err.classList.add('show');setTimeout(()=>err.classList.remove('show'),3000);return;}
+  const btn=document.querySelector('#adminModal button[onclick="doAdminLogin()"]');
+  const btnOrig=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Connexion...';}
+  const{error}=await wpsb.auth.signInWithPassword({email:ADMIN_EMAIL,password:pass});
+  if(btn){btn.disabled=false;btn.textContent=btnOrig;}
+  if(error){err.textContent='Identifiant ou mot de passe incorrect';err.classList.add('show');setTimeout(()=>err.classList.remove('show'),3000);return;}
   closeAdminModal();
-  loginSuccess(input,'admin',admin.name,'actif');
+  loginSuccess(ADMIN_EMAIL,'admin',ADMIN_NAME,'actif');
 }
 
 function doSocialLogin(p){ showError('⚠️ Connexion '+(p==='google'?'Google':'Facebook')+' — OAuth à configurer','info'); }
@@ -2803,6 +2855,7 @@ function loginSuccess(email,role,name,status){
 }
 
 function doLogout(){
+  if(currentUser.role==='admin'){try{wpsb.auth.signOut();}catch(e){}}
   currentUser={role:'visiteur',name:'Visiteur',email:'',status:'visiteur'};
   clearSession();
   try{closeAdminModal();}catch(e){}
@@ -3051,7 +3104,7 @@ async function payerCinetpay(){
   try{
     const r=await fetch('/api/cinetpay-init',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({amount:p.prix,designation:p.titre,client_email:email,client_first_name:prenom,client_last_name:nom,client_phone_number:tel})
+      body:JSON.stringify({amount:p.prix,designation:p.titre,produit_id:p.id,client_email:email,client_first_name:prenom,client_last_name:nom,client_phone_number:tel})
     });
     const data=await r.json();
     if(!r.ok||!data.payment_url){statusEl.style.color='var(--red)';statusEl.textContent='❌ '+(data.error||'Erreur lors de l\'initialisation du paiement');return;}
@@ -3094,10 +3147,14 @@ function showAchatSuccess(txn){
 
 PAGES['boutique-commandes']=function(){
   if(currentUser.role!=='admin') return '<div class="lock-overlay"><div class="lock-icon">🛡️</div><div class="lock-title">Admin uniquement</div><div class="lock-desc">La liste des commandes est réservée aux administrateurs.</div></div>';
+  loadCommandesAsync();
   const cmds=DS.get('boutique_commandes',DD.boutique_commandes).slice().reverse();
-  let h='<div class="ph anim-up"><h1>📦 <span class="o">Commandes</span></h1><p>Précommandes reçues via la boutique.</p></div>';
+  let h='<div class="ph anim-up"><h1>📦 <span class="o">Commandes</span></h1><p>Paiements en ligne et précommandes reçues via la boutique.</p></div>';
+  h+='<div class="card-title" style="margin-bottom:10px">💳 Paiements en ligne (CinetPay)</div>';
+  h+='<div id="cmdOnlineWrap"><div class="empty-state"><div class="empty-state-ic">⏳</div><div class="empty-state-title">Chargement…</div></div></div>';
+  h+='<div class="card-title" style="margin:22px 0 10px">💬 Précommandes WhatsApp</div>';
   if(cmds.length===0){
-    h+='<div class="empty-state"><div class="empty-state-ic">📦</div><div class="empty-state-title">Aucune commande</div><div class="empty-state-desc">Les précommandes de la boutique apparaîtront ici.</div></div>';
+    h+='<div class="empty-state"><div class="empty-state-ic">📦</div><div class="empty-state-title">Aucune précommande</div><div class="empty-state-desc">Les précommandes "payer plus tard" apparaîtront ici.</div></div>';
   } else {
     h+='<div style="display:flex;flex-direction:column;gap:10px">';
     cmds.forEach(c=>{
@@ -3112,6 +3169,23 @@ PAGES['boutique-commandes']=function(){
     h+='</div>';
   }
   return h;
+}
+async function loadCommandesAsync(){
+  const d=await wpAdminGet();
+  const cmds=d.commandes||[];
+  const wrap=document.getElementById('cmdOnlineWrap');
+  if(!wrap) return;
+  if(cmds.length===0){wrap.innerHTML='<div class="empty-state"><div class="empty-state-ic">💳</div><div class="empty-state-title">Aucun paiement en ligne</div><div class="empty-state-desc">Les achats payés via CinetPay apparaîtront ici, quel que soit l\'appareil du client.</div></div>';return;}
+  let h='<div style="display:flex;flex-direction:column;gap:10px">';
+  cmds.forEach(c=>{
+    const d=new Date(c.created_at); const dStr=isNaN(d)?'—':d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const stBadge=c.statut==='paye'?'<span class="sbadge actif">✅ Payée</span>':'<span class="sbadge new">⏳ En attente</span>';
+    h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'
+      +'<div><div style="font-weight:700;font-size:13px">'+c.produit_titre+' — '+c.montant+' FCFA</div><div style="font-size:11.5px;color:var(--muted);margin-top:4px">👤 '+c.client_nom+(c.client_tel?' · 📱 '+c.client_tel:'')+' · ✉️ '+c.client_email+'</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px">📅 '+dStr+'</div></div>'
+      +'<div>'+stBadge+'</div></div>';
+  });
+  h+='</div>';
+  wrap.innerHTML=h;
 }
 function marquerPaye(id){
   const cmds=DS.get('boutique_commandes',DD.boutique_commandes);
@@ -3225,7 +3299,7 @@ function buildUCMBody(type,editId){
     if(t.includes('module')) return DS.get('modules_cours',DD.modules).find(m=>m.id===id);
     if(t.includes('ressource')) return DS.get('ressources',DD.ressources).find(r=>r.id===id);
     if(t.includes('post')) return DS.get('forum_posts',DD.forum).find(p=>p.id===id);
-    if(t.includes('lead')) return DS.get('leads',DD.leads).find(l=>l.id===id);
+    if(t.includes('lead')) return (window.__wpLeadsCache||[]).find(l=>l.id===id);
     if(t.includes('projet_anc')||t.includes('proj_anc')) return DS.get('projets_anc',DD.projets_anc).find(a=>a.id===id);
     if(t.includes('projet')) return DS.get('projets',DD.projets).find(p=>p.id===id);
     return null;
@@ -3292,7 +3366,7 @@ function buildUCMBody(type,editId){
   return '<div style="padding:20px;text-align:center;color:var(--muted)">Formulaire non disponible.</div>';
 }
 
-function submitUCM(isDraft){
+async function submitUCM(isDraft){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   const gc=id=>{const e=document.getElementById(id);return e?e.checked:false;};
   const uid=()=>'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
@@ -3378,9 +3452,11 @@ function submitUCM(isDraft){
     }
     else if(t.includes('lead')){
       const nom=g('f_nom'),tel=g('f_tel');if(!nom||!tel){showToast('Nom et téléphone requis','error');return;}
-      const item={id:_ucmEditId||uid(),nom,tel,email:g('f_email'),service:g('f_service'),budget:g('f_budget')||'—',date:new Date().toLocaleDateString('fr-FR'),status:g('f_status')||'new'};
-      if(_ucmEditId)DS.upd('leads',_ucmEditId,item);else DS.push('leads',item,DD.leads);
-      showToast(_ucmEditId?'Lead modifié !':'Lead ajouté !','success');
+      const patch={nom,tel,email:g('f_email'),service:g('f_service'),budget:g('f_budget')||null,status:g('f_status')||'new'};
+      try{
+        await wpAdminPost({action:'upsert_lead',id:_ucmEditId||null,patch});
+        showToast(_ucmEditId?'Lead modifié !':'Lead ajouté !','success');
+      }catch(e){showToast('Erreur : '+e.message,'error');return;}
     }
     else if(t.includes('deal')){
       const title=g('f_title'),company=g('f_company');if(!title||!company){showToast('Opportunité et entreprise requis','error');return;}
@@ -3441,7 +3517,7 @@ function executeConfirm(){
     del_module:(id)=>{DS.remove('modules_cours',id);showToast('Module supprimé','success');nav();},
     del_ressource:(id)=>{DS.remove('ressources',id);showToast('Ressource supprimée','success');nav();},
     del_post:(id)=>{DS.remove('forum_posts',id);showToast('Post supprimé','success');nav();},
-    del_lead:(id)=>{DS.remove('leads',id);showToast('Lead supprimé','success');nav();},
+    del_lead:async(id)=>{try{await wpAdminPost({action:'delete_lead',id});showToast('Lead supprimé','success');nav();}catch(e){showToast('Erreur : '+e.message,'error');}},
     del_deal:(id,colId)=>{if(colId&&kanbanData[colId])kanbanData[colId]=kanbanData[colId].filter(c=>String(c.id)!==String(id));else Object.keys(kanbanData).forEach(k=>{kanbanData[k]=kanbanData[k].filter(c=>String(c.id)!==String(id));});showToast('Deal supprimé','success');nav();},
     del_projet:(id)=>{DS.remove('projets',id);showToast('Projet supprimé','success');nav();},
     del_proj_anc:(id)=>{DS.remove('projets_anc',id);showToast('Annonce supprimée','success');nav();}
