@@ -180,6 +180,21 @@ section.lsec{padding:96px 5vw}
 .scard-desc{font-size:13px;color:var(--muted);line-height:1.75}
 .scard-tag{display:inline-block;margin-top:16px;background:rgba(232,96,10,0.1);border:1px solid rgba(232,96,10,0.22);color:var(--or3);font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase}
 
+/* ── PLATEFORMES ── */
+#l-plateformes{background:var(--bg)}
+.pcard{background:var(--surf);border:1px solid var(--borderl);border-radius:16px;padding:26px;position:relative;overflow:hidden;transition:all .28s;display:flex;flex-direction:column;text-decoration:none;color:inherit}
+.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--or),transparent);opacity:0;transition:opacity .3s}
+.pcard:hover{border-color:rgba(232,96,10,0.35);transform:translateY(-5px);box-shadow:0 16px 44px rgba(232,96,10,0.1)}
+.pcard:hover::before{opacity:1}
+.pcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pcard-ic{font-size:30px;transition:transform .3s}
+.pcard:hover .pcard-ic{transform:scale(1.1)}
+.pcard-live{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4ade80}
+.pcard-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.18)}
+.pcard-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:.5px;margin-bottom:8px;color:var(--silver2)}
+.pcard-desc{font-size:13px;color:var(--muted);line-height:1.7;flex:1}
+.pcard-link{margin-top:18px;font-size:12px;font-weight:700;color:var(--or3);display:inline-flex;align-items:center;gap:6px}
+
 /* ── PRÉSENTATION DELL DIGITAL ── */
 #presentation{background:var(--bg)}
 .pres-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
@@ -920,6 +935,7 @@ select.ucm-input option{background:var(--surf)}
   </div>
   <div class="nav-links">
     <a href="#l-services">Services</a>
+    <a href="#l-plateformes">Plateformes</a>
     <a href="#presentation">À propos</a>
     <a href="#l-temoignages">Témoignages</a>
     <a href="#l-rejoindre">Contact</a>
@@ -935,6 +951,7 @@ select.ucm-input option{background:var(--surf)}
 </nav>
 <div class="mobile-menu" id="mobileMenu">
   <a href="#l-services" onclick="toggleMenu()">Services</a>
+  <a href="#l-plateformes" onclick="toggleMenu()">Plateformes</a>
   <a href="#presentation" onclick="toggleMenu()">À propos</a>
   <a href="#l-temoignages" onclick="toggleMenu()">Témoignages</a>
   <a href="javascript:void(0)" onclick="toggleMenu();visitBoutique()">🛒 Boutique</a>
@@ -987,6 +1004,59 @@ select.ucm-input option{background:var(--surf)}
     <div class="scard reveal"><span class="scard-ic">💳</span><div class="scard-title">Paiement en Ligne</div><p class="scard-desc">Intégration de T-Money, Flooz et carte bancaire directement sur votre site ou boutique en ligne, pour encaisser sans friction.</p><span class="scard-tag">Paiement</span></div>
     <div class="scard reveal"><span class="scard-ic">📊</span><div class="scard-title">Analyse & Data</div><p class="scard-desc">Tableaux de bord analytiques, rapports de performance, suivi KPIs et aide à la décision basée sur les données réelles de votre activité.</p><span class="scard-tag">Data-driven</span></div>
     <div class="scard reveal"><span class="scard-ic">🤝</span><div class="scard-title">Partenariats B2B</div><p class="scard-desc">Programmes de partenariat pour agences, ONG et institutions souhaitant intégrer nos modules de formation ou co-développer des projets digitaux.</p><span class="scard-tag">Partenaire</span></div>
+  </div>
+</section>
+
+<!-- ── PLATEFORMES ── -->
+<section class="lsec" id="l-plateformes">
+  <div class="section-head reveal">
+    <div class="section-label">Nos réalisations</div>
+    <h2 class="section-title">Nos <span>plateformes</span></h2>
+    <p class="section-sub">Des solutions SaaS que nous avons conçues et que nous exploitons en production, au Togo et en Afrique de l'Ouest.</p>
+  </div>
+  <div class="services-grid">
+    <a href="https://unimanagerdell.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">🎓</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">UniManage</div>
+      <p class="pcard-desc">Gestion universitaire tout-en-un — inscriptions, notes, paiements de scolarité et suivi académique.</p>
+      <span class="pcard-link">unimanagerdell.com →</span>
+    </a>
+    <a href="https://erpdelldigital.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">🧠</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">Consultant IA</div>
+      <p class="pcard-desc">ERP propulsé par l'intelligence artificielle pour piloter finances, stocks et opérations d'entreprise.</p>
+      <span class="pcard-link">erpdelldigital.com →</span>
+    </a>
+    <a href="https://naoladigital-rh.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">🧑‍💼</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">NAOLA Digital RH</div>
+      <p class="pcard-desc">SIRH multi-pays — paie conforme CNSS/IRPP, congés, contrats et recrutement, pour entreprises et cabinets RH.</p>
+      <span class="pcard-link">naoladigital-rh.com →</span>
+    </a>
+    <a href="https://syn.erpdelldigital.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">⚙️</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">SynergySphere</div>
+      <p class="pcard-desc">OS d'entreprise propulsé par l'IA — agents RH & Finance, base de connaissances privée par organisation.</p>
+      <span class="pcard-link">syn.erpdelldigital.com →</span>
+    </a>
+    <a href="https://competencepro.erpdelldigital.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">📈</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">CompétencePro</div>
+      <p class="pcard-desc">Gestion des compétences en entreprise — cartographie, évaluations et recommandations de formation par IA.</p>
+      <span class="pcard-link">competencepro.erpdelldigital.com →</span>
+    </a>
+    <a href="https://livriwa.erpdelldigital.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">🏍️</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">LivriWa</div>
+      <p class="pcard-desc">Mise en relation livraison & taxi-moto à la demande, entre particuliers, entreprises et conducteurs.</p>
+      <span class="pcard-link">livriwa.erpdelldigital.com →</span>
+    </a>
+    <a href="https://partner.erpdelldigital.com" target="_blank" rel="noopener" class="pcard reveal">
+      <div class="pcard-top"><span class="pcard-ic">🤝</span><span class="pcard-live">En ligne</span></div>
+      <div class="pcard-title">Dell Digital Partner</div>
+      <p class="pcard-desc">Programme d'affiliation multi-niveaux — commissions automatiques sur chaque client apporté à nos plateformes.</p>
+      <span class="pcard-link">partner.erpdelldigital.com →</span>
+    </a>
   </div>
 </section>
 
