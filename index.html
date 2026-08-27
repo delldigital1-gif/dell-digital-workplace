@@ -1576,6 +1576,11 @@ const DD={
     {id:'l2',nom:'Ama Koklou',email:'ama@mode.tg',tel:'+228 90 00 33 44',service:'Site e-commerce',budget:'150k-500k FCFA',date:'11/06/2026',status:'new'},
     {id:'l3',nom:'Mireille Yao',email:'mireille@ong.org',tel:'+228 90 00 55 66',service:'Consulting IT',budget:'Non defini',date:'12/06/2026',status:'done'}
   ],
+  certifications:[
+    {id:'DD-2026-001',nom:'Kwame Asante',formation:'Assistant IA en 1h',date:'25/06/2026',status:'valid'},
+    {id:'DD-2026-002',nom:'Ama Koklou',formation:'Assistant IA en 1h',date:'26/06/2026',status:'pending'},
+    {id:'DD-2025-089',nom:'Mireille Yao',formation:'Marketing Digital 360°',date:'15/03/2026',status:'valid'}
+  ],
   projets:[
     {id:'pj1',ic:'🤖',titre:'Integration IA pour PME',desc:"Deploiement d'assistants IA pour les PME togolaises. Automatisation des taches repetitives.",statut:'cours',auteur:'Lynx K. ADANGBALO',autorEmail:'delldigital1@gmail.com',date:'10 juin 2026',tags:['IA','PME','Automatisation']},
     {id:'pj2',ic:'🌐',titre:'Plateforme e-learning Afrique',desc:"Developpement d'une plateforme de formation en ligne adaptee au marche africain.",statut:'plan',auteur:'Dell Digital',autorEmail:'contact@delldigital.tg',date:'12 juin 2026',tags:['Tech','Formation','Mobile']},
@@ -2346,12 +2351,6 @@ function addKanbanCard(colId) {
 /* ══════════════════════════════════════════
    MODULE 5 — CONTACT CLIENT
 ══════════════════════════════════════════ */
-let leads = [
-  {nom:'Kwame Asante',email:'kwame@agro.tg',service:'Formation IA',date:'10/06/2026',status:'hot'},
-  {nom:'Ama Koklou',email:'ama@mode.tg',service:'Site e-commerce',date:'11/06/2026',status:'new'},
-  {nom:'Mireille Yao',email:'mireille@ong.org',service:'Consulting IT',date:'12/06/2026',status:'done'}
-];
-
 PAGES['contact-formulaire'] = function() {
   return `<div class="ph anim-up"><h1>📬 <span class="o">Contact</span> Client</h1><p>Formulaire de capture de leads et de requêtes clients.</p></div>
   <div class="contact-grid">
@@ -2397,9 +2396,15 @@ PAGES['contact-formulaire'] = function() {
 function submitContactForm() {
   const nom=document.getElementById('cfNom')?.value.trim();
   const email=document.getElementById('cfEmail')?.value.trim();
+  const tel=document.getElementById('cfTel')?.value.trim();
+  const entreprise=document.getElementById('cfEntreprise')?.value.trim();
   const service=document.getElementById('cfService')?.value;
+  const budget=document.getElementById('cfBudget')?.value;
+  const message=document.getElementById('cfMessage')?.value.trim();
   if(!nom||!email||!service){showToast('Veuillez remplir les champs obligatoires','error');return;}
-  leads.unshift({nom,email,service,date:new Date().toLocaleDateString('fr-FR'),status:'new'});
+  const item={id:'lead_'+Date.now(),nom,tel,email,entreprise,service,budget:(budget&&!budget.startsWith('—'))?budget:'—',message,date:new Date().toLocaleDateString('fr-FR'),status:'new'};
+  DS.push('leads',item,DD.leads);
+  addNotification('Nouvelle demande client','"'+nom+'" — '+service,'📬');
   showToast('Demande enregistrée avec succès !','success');
   document.querySelectorAll('.cf-input').forEach(el=>{if(el.tagName==='SELECT'){el.selectedIndex=0;}else{el.value='';}});
 }
@@ -2417,13 +2422,8 @@ PAGES['contact-leads']=function(){
 /* ══════════════════════════════════════════
    MODULE 7 — CERTIFICATIONS
 ══════════════════════════════════════════ */
-let certifications = [
-  {nom:'Kwame Asante',formation:'Assistant IA en 1h',date:'25/06/2026',status:'valid',id:'DD-2026-001'},
-  {nom:'Ama Koklou',formation:'Assistant IA en 1h',date:'26/06/2026',status:'pending',id:'DD-2026-002'},
-  {nom:'Mireille Yao',formation:'Marketing Digital 360°',date:'15/03/2026',status:'valid',id:'DD-2025-089'}
-];
-
 PAGES['certifications-liste'] = function() {
+  const certifications=DS.get('certifications',DD.certifications);
   let cards='';
   certifications.forEach((c,i)=>{
     const statusLabel={valid:'Validé ✓',pending:'En attente',expired:'Expiré'}[c.status];
@@ -2506,7 +2506,7 @@ function updateCertPreview() {
   if(document.getElementById('prevFormation')) document.getElementById('prevFormation').textContent=formation;
   if(document.getElementById('prevDate')) document.getElementById('prevDate').textContent='Délivré le '+date;
   if(document.getElementById('prevMention')) document.getElementById('prevMention').textContent='Mention : '+mention;
-  const id='DD-2026-'+String(certifications.length+1).padStart(3,'0');
+  const id='DD-2026-'+String(DS.get('certifications',DD.certifications).length+1).padStart(3,'0');
   if(document.getElementById('prevId')) document.getElementById('prevId').textContent='ID: '+id;
 }
 
@@ -2516,8 +2516,8 @@ function emitCertification() {
   const formation=document.getElementById('certFormation')?.value;
   const dateEl=document.getElementById('certDate');
   const date=dateEl?.value ? new Date(dateEl.value).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
-  const id='DD-2026-'+String(certifications.length+1).padStart(3,'0');
-  certifications.push({nom,formation,date,status:'valid',id});
+  const id='DD-2026-'+String(DS.get('certifications',DD.certifications).length+1).padStart(3,'0');
+  DS.push('certifications',{nom,formation,date,status:'valid',id},DD.certifications);
   showToast(`Certification émise pour ${nom} !`,'success');
   setTimeout(()=>navigate('certifications','liste'),800);
 }
